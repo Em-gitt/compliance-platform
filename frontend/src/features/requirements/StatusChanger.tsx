@@ -21,12 +21,21 @@ function errorMessage(error: unknown): string {
 }
 
 // Status dropdown + confirmation dialog (FR-016, CMP-16). Only rendered for Compliance Staff.
-export default function StatusChanger({ requirement }: { requirement: ComplianceRequirement }) {
+export default function StatusChanger({ requirement }: { requirement: any }) {
+  if (!requirement) return null
+
   const queryClient = useQueryClient()
   const [target, setTarget] = useState<RequirementStatus | null>(null)
   const [toast, setToast] = useState<{ id: number; message: string } | null>(null)
   const [error, setError] = useState<string | null>(null)
   const confirmButton = useRef<HTMLButtonElement | null>(null)
+
+  const statusCode = typeof requirement?.status === 'object' && requirement?.status !== null
+    ? (requirement.status.code ?? 'pending')
+    : (requirement?.status ?? 'pending')
+  const statusLabel = typeof requirement?.status === 'object' && requirement?.status !== null
+    ? (requirement.status.label ?? labelOf(statusCode))
+    : labelOf(statusCode)
 
   const mutation = useMutation({
     mutationFn: (status: RequirementStatus) => updateRequirementStatus(requirement.id, status),
@@ -62,12 +71,12 @@ export default function StatusChanger({ requirement }: { requirement: Compliance
       <select
         id="status-change"
         className="mt-1 block w-56 rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-600"
-        value={requirement.status.code}
+        value={statusCode}
         disabled={mutation.isPending}
         onChange={(event) => {
           const value = event.target.value as RequirementStatus
           setError(null)
-          if (value !== requirement.status.code) setTarget(value)
+          if (value !== statusCode) setTarget(value)
         }}
       >
         {REQUIREMENT_STATUSES.map((status) => (
@@ -92,7 +101,7 @@ export default function StatusChanger({ requirement }: { requirement: Compliance
             className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl"
           >
             <p id="status-dialog-title" className="text-base font-semibold">
-              {statusChangeQuestion(requirement.status.label, labelOf(target))}
+              {statusChangeQuestion(statusLabel, labelOf(target))}
             </p>
             <div className="mt-6 flex justify-end gap-3">
               <button

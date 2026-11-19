@@ -81,7 +81,9 @@ class ComplianceRequirementController extends Controller
                 throw ValidationException::withMessages(['status' => RequirementMessages::STATUS_UNCHANGED]);
             }
 
-            $requirement->update(['status' => $to]);
+            ComplianceRequirement::withoutEvents(function () use ($requirement, $to) {
+                $requirement->update(['status' => $to]);
+            });
 
             AuditLog::query()->create([
                 'user_id' => $request->user()->id,

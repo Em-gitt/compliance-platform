@@ -60,7 +60,7 @@ export default function RequirementDetailPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
   const { data: requirement, isLoading, error } = useQuery<RequirementDetail>({
-    queryKey: ['requirement', id],
+    queryKey: ['requirements', id],
     queryFn: async () => {
       try {
         const res = await api.get(`/api/compliance-requirements/${id}`)
@@ -99,7 +99,7 @@ export default function RequirementDetailPage() {
       setActiveLinkId(null)
       setSelectedDocId('')
       // Update cache in-place without page reload (AC #2)
-      queryClient.setQueryData(['requirement', id], (old: RequirementDetail | undefined) => {
+      queryClient.setQueryData(['requirements', id], (old: RequirementDetail | undefined) => {
         if (!old) return old
         const updatedDocs = (old.required_documents ?? []).map((d) => {
           if (d.id === data.required_document.id) {
@@ -136,7 +136,7 @@ export default function RequirementDetailPage() {
     },
     onSuccess: (data) => {
       setErrorMessage(null)
-      queryClient.setQueryData(['requirement', id], (old: RequirementDetail | undefined) => {
+      queryClient.setQueryData(['requirements', id], (old: RequirementDetail | undefined) => {
         if (!old) return old
         const updatedDocs = (old.required_documents ?? []).map((d) => {
           if (d.id === data.required_document.id) {
@@ -203,11 +203,9 @@ export default function RequirementDetailPage() {
                 <h1 className="text-2xl font-bold text-slate-900">{requirement.name}</h1>
                 <div className="flex items-center gap-3">
                   <StatusBadge status={requirement.status} />
-                  <StatusChanger
-                    requirementId={requirement.id}
-                    currentStatus={typeof requirement.status === 'object' ? requirement.status?.code : requirement.status}
-                    userRole={user?.role}
-                  />
+                  {user?.role === 'compliance_staff' && (
+                    <StatusChanger requirement={requirement} />
+                  )}
                 </div>
               </div>
 

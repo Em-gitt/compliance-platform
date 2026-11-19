@@ -177,9 +177,24 @@ services:
       db:
         condition: service_healthy
 
+  uptime-kuma:
+    image: louislam/uptime-kuma:1
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    volumes:
+      - uptime_kuma_data:/app/data
+    healthcheck:
+      test: ["CMD-SHELL", "node -e 'require(\"http\").get(\"http://localhost:3001\", (res) => process.exit(res.statusCode === 200 || res.statusCode === 302 ? 0 : 1))'"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
 volumes:
   pg_data:
   documents_storage:
   backend_vendor:
   certbot_www:
   backup_logs:
+  uptime_kuma_data:

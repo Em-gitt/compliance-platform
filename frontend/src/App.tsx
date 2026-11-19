@@ -1,6 +1,8 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
+import Header from './components/Header'
 import IdleTimeoutModal from './components/IdleTimeoutModal'
 import ProtectedRoute from './components/ProtectedRoute'
+import AlertsPage from './pages/AlertsPage'
 import AssistantPage from './pages/AssistantPage'
 import AuditLogPage from './pages/AuditLogPage'
 import DocumentDetailPage from './pages/DocumentDetailPage'
@@ -16,11 +18,13 @@ export default function App() {
   return (
     <>
       <IdleTimeoutModal />
+      <Header />
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/403" element={<ForbiddenPage />} />
         <Route element={<ProtectedRoute />}>
           <Route path="/" element={<HomePage />} />
+          <Route path="/alerts" element={<AlertsPage />} />
           <Route element={<ProtectedRoute ability="view-dashboard" />}>
             <Route path="/dashboard" element={<HomePage />} />
           </Route>

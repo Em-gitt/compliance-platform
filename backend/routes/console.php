@@ -11,3 +11,7 @@ Artisan::command('inspire', function () {
 Schedule::command('compliance:check-expirations')
     ->dailyAt('00:05')
     ->timezone('America/Mexico_City');
+
+Schedule::command('alerts:generate')
+    ->dailyAt('07:00')
+    ->timezone('America/Mexico_City');

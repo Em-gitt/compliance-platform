@@ -47,6 +47,23 @@ class RequirementController extends Controller
         $this->authorize('create', ComplianceRequirement::class);
         $user = $request->user();
 
+        if ($request->has('notification_periods')) {
+            $periods = $request->input('notification_periods');
+            if (! is_array($periods) || empty($periods)) {
+                return response()->json([
+                    'message' => 'Notification period must be one of: 30, 15, 7 or 1 days.',
+                ], 422);
+            }
+            $allowed = [30, 15, 7, 1];
+            foreach ($periods as $p) {
+                if (! in_array($p, $allowed, true)) {
+                    return response()->json([
+                        'message' => 'Notification period must be one of: 30, 15, 7 or 1 days.',
+                    ], 422);
+                }
+            }
+        }
+
         $validated = $request->validate([
             'name' => 'required|string|max:150',
             'description' => 'required|string',
@@ -120,6 +137,23 @@ class RequirementController extends Controller
 
     public function update(Request $request, ComplianceRequirement $requirement): JsonResponse
     {
+        if ($request->has('notification_periods')) {
+            $periods = $request->input('notification_periods');
+            if (! is_array($periods) || empty($periods)) {
+                return response()->json([
+                    'message' => 'Notification period must be one of: 30, 15, 7 or 1 days.',
+                ], 422);
+            }
+            $allowed = [30, 15, 7, 1];
+            foreach ($periods as $p) {
+                if (! in_array($p, $allowed, true)) {
+                    return response()->json([
+                        'message' => 'Notification period must be one of: 30, 15, 7 or 1 days.',
+                    ], 422);
+                }
+            }
+        }
+
         $validated = $request->validate([
             'status' => 'sometimes|string|in:compliant,pending,at_risk,overdue',
             'name' => 'sometimes|string|max:150',
@@ -127,6 +161,7 @@ class RequirementController extends Controller
             'regulation' => 'sometimes|string|max:150',
             'deadline' => 'sometimes|date',
             'responsible_user_id' => 'sometimes|exists:users,id',
+            'notification_periods' => 'sometimes|array',
         ]);
 
         if (array_key_exists('status', $validated) && $validated['status'] !== $requirement->status) {

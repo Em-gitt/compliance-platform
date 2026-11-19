@@ -37,7 +37,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/documents/{id}/versions/{versionId}/download', [DocumentController::class, 'download']);
 
     Route::get('/alerts', [AlertController::class, 'index']);
-    Route::patch('/alerts/{alert}/read', [AlertController::class, 'markAsRead']);
+    Route::match(['post', 'patch'], '/alerts/{alert}/read', [AlertController::class, 'markAsRead']);
+    Route::post('/alerts/read-all', [AlertController::class, 'markAllAsRead']);
 
     Route::get('/requirements', [RequirementController::class, 'index']);
     Route::post('/requirements', [RequirementController::class, 'store']);

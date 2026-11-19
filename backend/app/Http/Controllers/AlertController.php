@@ -44,4 +44,20 @@ class AlertController extends Controller
             'alert' => $alert,
         ]);
     }
+
+    /**
+     * Mark all unread alerts as read for the authenticated user.
+     */
+    public function markAllAsRead(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        Alert::where('user_id', $user->id)
+            ->whereNull('read_at')
+            ->update(['read_at' => now()]);
+
+        return response()->json([
+            'message' => 'All alerts marked as read.',
+        ]);
+    }
 }

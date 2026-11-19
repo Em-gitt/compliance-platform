@@ -7,6 +7,8 @@ import StatusBadge from '../components/StatusBadge'
 import Toast from '../components/Toast'
 import { isoToDisplayDate } from '../features/requirements/dates'
 import { REQUIREMENT_LABELS as L } from '../features/requirements/messages'
+import StatusChanger from '../features/requirements/StatusChanger'
+import { useCurrentUser } from '../lib/auth'
 
 interface DocumentItem {
   id: number
@@ -51,6 +53,7 @@ export default function RequirementDetailPage() {
   const { id = '' } = useParams<{ id: string }>()
   const location = useLocation()
   const toast = (location.state as { toast?: string } | null)?.toast
+  const { data: user } = useCurrentUser()
   const queryClient = useQueryClient()
   const [activeLinkId, setActiveLinkId] = useState<number | null>(null)
   const [selectedDocId, setSelectedDocId] = useState<string>('')
@@ -198,7 +201,14 @@ export default function RequirementDetailPage() {
             <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
               <div className="flex items-center justify-between">
                 <h1 className="text-2xl font-bold text-slate-900">{requirement.name}</h1>
-                <StatusBadge status={requirement.status} />
+                <div className="flex items-center gap-3">
+                  <StatusBadge status={requirement.status} />
+                  <StatusChanger
+                    requirementId={requirement.id}
+                    currentStatus={typeof requirement.status === 'object' ? requirement.status?.code : requirement.status}
+                    userRole={user?.role}
+                  />
+                </div>
               </div>
 
               <dl className="mt-6 divide-y divide-gray-200 rounded-md border border-gray-200">

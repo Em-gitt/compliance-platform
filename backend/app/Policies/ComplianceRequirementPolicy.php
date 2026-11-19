@@ -42,17 +42,21 @@ class ComplianceRequirementPolicy
         return $this->staffCanManage($user);
     }
 
+    /**
+     * ADR-005, function 4: only Compliance Staff can change the compliance status.
+     * A requirement of another organization is reported as not found.
+     */
     public function updateStatus(User $user, ComplianceRequirement $requirement): Response
     {
         if ($user->organization_id !== $requirement->organization_id) {
-            return Response::deny('You do not have permission to change this compliance status.');
+            return Response::denyAsNotFound(RequirementMessages::NOT_FOUND);
         }
 
         $role = $user->role instanceof Role ? $user->role->value : (string) $user->role;
 
         return $role === 'compliance_staff'
             ? Response::allow()
-            : Response::deny('You do not have permission to change this compliance status.');
+            : Response::deny(RequirementMessages::STATUS_FORBIDDEN);
     }
 
     private function staffCanManage(User $user): Response

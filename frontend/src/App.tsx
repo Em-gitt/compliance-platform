@@ -12,6 +12,8 @@ import DocumentUploadPage from './pages/DocumentUploadPage'
 import ForbiddenPage from './pages/ForbiddenPage'
 import HomePage from './pages/HomePage'
 import LoginPage from './pages/LoginPage'
+import OrganizationCreatePage from './pages/OrganizationCreatePage'
+import OrganizationDetailPage from './pages/OrganizationDetailPage'
 import RequirementDetailPage from './pages/RequirementDetailPage'
 import RequirementsListPage from './pages/RequirementsListPage'
 import UsersPage from './pages/UsersPage'
@@ -27,6 +29,10 @@ export default function App() {
         <Route element={<ProtectedRoute />}>
           <Route path="/" element={<HomePage />} />
           <Route path="/alerts" element={<AlertsPage />} />
+          <Route element={<ProtectedRoute ability="manage-organization" />}>
+            <Route path="/organizations/new" element={<OrganizationCreatePage />} />
+          </Route>
+          <Route path="/organizations/:id" element={<OrganizationDetailPage />} />
           <Route element={<ProtectedRoute ability="view-dashboard" />}>
             <Route path="/dashboard" element={<DashboardPage />} />
           </Route>
@@ -52,5 +58,7 @@ export default function App() {
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
     </>
+  )
+}
   )
 }

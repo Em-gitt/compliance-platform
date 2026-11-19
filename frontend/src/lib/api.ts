@@ -5,6 +5,7 @@ export const api = axios.create({
   withCredentials: true,
   // Send the XSRF-TOKEN cookie when the SPA and the API run on different ports (localhost:5173 -> :8000).
   withXSRFToken: true,
+  headers: { Accept: 'application/json' },
 })
 
 let onUnauthorized: (() => void) | undefined

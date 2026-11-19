@@ -4,10 +4,12 @@ use App\Http\Controllers\AlertController;
 use App\Http\Controllers\AssistantController;
 use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\CatalogController;
 use App\Http\Controllers\CitationController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\HealthController;
+use App\Http\Controllers\OrganizationController;
 use App\Http\Controllers\RequirementController;
 use App\Http\Controllers\UserController;
 use Illuminate\Http\Request;
@@ -19,6 +21,10 @@ Route::get('/user', function (Request $request) {
 })->middleware('auth:sanctum');
 
 Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/catalogs/organization', [CatalogController::class, 'organization']);
+    Route::post('/organizations', [OrganizationController::class, 'store']);
+    Route::get('/organizations/{organization}', [OrganizationController::class, 'show'])->whereNumber('organization');
+
     Route::get('/dashboard', [DashboardController::class, 'index']);
     Route::get('/users', [UserController::class, 'index']);
     Route::post('/users', [UserController::class, 'store']);

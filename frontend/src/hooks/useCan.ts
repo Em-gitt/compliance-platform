@@ -26,7 +26,10 @@ export function can(role: string | undefined, ability: Ability): boolean {
 }
 
 export function useCan(ability: Ability): boolean {
-  const { user } = useAuth()
-
-  return can(user?.role, ability)
+  try {
+    const { user } = useAuth()
+    return can(user?.role, ability)
+  } catch {
+    return false
+  }
 }

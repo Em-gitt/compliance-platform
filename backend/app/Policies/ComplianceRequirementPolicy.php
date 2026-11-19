@@ -5,6 +5,7 @@ namespace App\Policies;
 use App\Enums\Role;
 use App\Models\ComplianceRequirement;
 use App\Models\User;
+use App\Support\RequirementMessages;
 use Illuminate\Auth\Access\Response;
 
 class ComplianceRequirementPolicy
@@ -20,12 +21,16 @@ class ComplianceRequirementPolicy
             return Response::deny('You do not have permission to view this requirement.');
         }
 
-        return $this->staffCanManage($user);
+        return Response::allow();
     }
 
     public function create(User $user): Response
     {
-        return $this->staffCanManage($user);
+        $role = $user->role instanceof Role ? $user->role->value : (string) $user->role;
+
+        return in_array($role, ['administrator', 'compliance_staff'], true)
+            ? Response::allow()
+            : Response::deny(RequirementMessages::FORBIDDEN);
     }
 
     public function update(User $user, ComplianceRequirement $requirement): Response
@@ -43,14 +48,18 @@ class ComplianceRequirementPolicy
             return Response::deny('You do not have permission to change this compliance status.');
         }
 
-        return $user->role === Role::ComplianceStaff
+        $role = $user->role instanceof Role ? $user->role->value : (string) $user->role;
+
+        return $role === 'compliance_staff'
             ? Response::allow()
             : Response::deny('You do not have permission to change this compliance status.');
     }
 
     private function staffCanManage(User $user): Response
     {
-        return in_array($user->role, [Role::Administrator, Role::ComplianceStaff], true)
+        $role = $user->role instanceof Role ? $user->role->value : (string) $user->role;
+
+        return in_array($role, ['administrator', 'compliance_staff'], true)
             ? Response::allow()
             : Response::deny('You do not have permission to manage requirements.');
     }

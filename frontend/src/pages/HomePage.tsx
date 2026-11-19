@@ -3,7 +3,7 @@ import axios from 'axios'
 import { Link } from 'react-router-dom'
 import { useCan } from '../hooks/useCan'
 import { api } from '../lib/api'
-import { isAdministrator, useCurrentUser } from '../lib/auth'
+import { canCreateRequirements, isAdministrator, useCurrentUser } from '../lib/auth'
 
 type Health = { status: string }
 
@@ -44,6 +44,14 @@ export default function HomePage() {
           <p className="text-sm text-slate-500">Módulos disponibles:</p>
           {canViewDashboard && <a href="/dashboard" className="block w-full rounded-lg bg-slate-700 px-4 py-2.5 font-medium text-white transition-colors hover:bg-slate-800">Dashboard</a>}
           {canManageRequirements && <a href="/requirements" className="block w-full rounded-lg bg-slate-100 px-4 py-2.5 font-medium text-slate-700 transition-colors hover:bg-slate-200">Requerimientos de Cumplimiento</a>}
+          {(canCreateRequirements(user?.role) || canManageRequirements) && (
+            <Link
+              to="/requirements/new"
+              className="block w-full rounded-lg border border-blue-700 px-4 py-2.5 font-medium text-blue-700 transition-colors hover:bg-blue-50 text-center"
+            >
+              New compliance requirement
+            </Link>
+          )}
           {canUploadDocuments && <a href="/documents/new" className="block w-full rounded-lg bg-indigo-600 px-4 py-2.5 font-medium text-white transition-colors hover:bg-indigo-700">Subir Nuevo Documento</a>}
           {canUseAssistant && <a href="/assistant" className="block w-full rounded-lg bg-slate-100 px-4 py-2.5 font-medium text-slate-700 transition-colors hover:bg-slate-200">AI Assistant</a>}
           {canManageUsers && <a href="/admin/users" className="block w-full rounded-lg bg-slate-100 px-4 py-2.5 font-medium text-slate-700 transition-colors hover:bg-slate-200">Users</a>}

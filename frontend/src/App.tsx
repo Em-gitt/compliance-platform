@@ -14,6 +14,7 @@ import HomePage from './pages/HomePage'
 import LoginPage from './pages/LoginPage'
 import OrganizationCreatePage from './pages/OrganizationCreatePage'
 import OrganizationDetailPage from './pages/OrganizationDetailPage'
+import RequirementCreatePage from './pages/RequirementCreatePage'
 import RequirementDetailPage from './pages/RequirementDetailPage'
 import RequirementsListPage from './pages/RequirementsListPage'
 import UsersPage from './pages/UsersPage'
@@ -48,6 +49,7 @@ export default function App() {
           </Route>
           <Route element={<ProtectedRoute ability="manage-requirements" />}>
             <Route path="/requirements" element={<RequirementsListPage />} />
+            <Route path="/requirements/new" element={<RequirementCreatePage />} />
             <Route path="/requirements/:id" element={<RequirementDetailPage />} />
           </Route>
           <Route element={<ProtectedRoute ability="manage-users" />}>

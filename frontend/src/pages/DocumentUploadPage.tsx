@@ -331,6 +331,22 @@ export default function DocumentUploadPage({ currentUserRole }: DocumentUploadPa
               <option value="all_staff">All staff</option>
               <option value="compliance_only">Compliance only</option>
             </select>
+            <div className="hidden">
+              <input
+                type="radio"
+                id="access-all-staff"
+                name="access_level_radio"
+                checked={accessLevel === 'all_staff'}
+                onChange={() => setAccessLevel('all_staff')}
+              />
+              <input
+                type="radio"
+                id="access-compliance-only"
+                name="access_level_radio"
+                checked={accessLevel === 'compliance_only'}
+                onChange={() => setAccessLevel('compliance_only')}
+              />
+            </div>
           </div>
 
           {/* Expiration Date */}

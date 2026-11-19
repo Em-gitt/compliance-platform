@@ -24,5 +24,22 @@ class DemoSeeder extends Seeder
                 ['organization_id' => $organization->id, 'name' => ucwords(str_replace('_', ' ', $role)), 'password' => Hash::make($password), 'role' => $role, 'is_active' => true]
             );
         }
+
+        $complianceStaff = User::query()->where('email', 'demo.compliance_staff@compliance-platform.test')->first();
+        if ($complianceStaff) {
+            \App\Models\ComplianceRequirement::query()->firstOrCreate(
+                ['name' => 'NOM-035-STPS-2018 Factores de riesgo psicosocial', 'organization_id' => $organization->id],
+                [
+                    'description' => 'Identificación, análisis, prevención y control de factores de riesgo psicosocial.',
+                    'regulation' => 'NOM-035-STPS-2018',
+                    'deadline' => now()->addDays(20),
+                    'responsible_user_id' => $complianceStaff->id,
+                    'status' => 'pending',
+                    'applies' => true,
+                    'notification_periods' => [30, 15, 7, 1],
+                    'created_by' => $complianceStaff->id,
+                ]
+            );
+        }
     }
 }

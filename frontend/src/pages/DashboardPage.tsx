@@ -111,7 +111,7 @@ export default function DashboardPage() {
       <div className="min-h-screen bg-slate-50 p-6">
         <div className="mx-auto max-w-7xl">
           <div className="rounded-xl border border-slate-200 bg-white p-12 text-center text-slate-600 shadow-sm">
-            <h2 className="text-lg font-semibold text-slate-800">Compliance Dashboard</h2>
+            <h1 className="text-2xl font-bold text-slate-800">Compliance Dashboard</h1>
             <p className="mt-2 text-sm text-slate-500">
               No compliance requirements apply to your organization yet.
             </p>

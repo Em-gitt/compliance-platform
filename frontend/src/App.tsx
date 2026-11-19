@@ -43,6 +43,7 @@ export default function App() {
           </Route>
           <Route element={<ProtectedRoute ability="upload-documents" />}>
             <Route path="/documents/new" element={<DocumentUploadPage />} />
+            <Route path="/documents/upload" element={<DocumentUploadPage />} />
           </Route>
           <Route element={<ProtectedRoute ability="view-documents" />}>
             <Route path="/documents" element={<DocumentsListPage />} />
@@ -56,7 +57,9 @@ export default function App() {
           </Route>
           <Route element={<ProtectedRoute ability="manage-users" />}>
             <Route path="/admin/users" element={<UsersPage />} />
+            <Route path="/users" element={<UsersPage />} />
             <Route path="/admin/audit-log" element={<AuditLogPage />} />
+            <Route path="/audit-log" element={<AuditLogPage />} />
           </Route>
         </Route>
         <Route path="*" element={<Navigate to="/dashboard" replace />} />

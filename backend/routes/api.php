@@ -4,6 +4,7 @@ use App\Http\Controllers\AlertController;
 use App\Http\Controllers\AssistantController;
 use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\HealthController;
 use App\Http\Controllers\RequirementController;
@@ -17,6 +18,7 @@ Route::get('/user', function (Request $request) {
 })->middleware('auth:sanctum');
 
 Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/dashboard', [DashboardController::class, 'index']);
     Route::get('/users', [UserController::class, 'index']);
     Route::post('/users', [UserController::class, 'store']);
     Route::match(['put', 'patch'], '/users/{user}', [UserController::class, 'update']);

@@ -5,6 +5,7 @@ import ProtectedRoute from './components/ProtectedRoute'
 import AlertsPage from './pages/AlertsPage'
 import AssistantPage from './pages/AssistantPage'
 import AuditLogPage from './pages/AuditLogPage'
+import DashboardPage from './pages/DashboardPage'
 import DocumentDetailPage from './pages/DocumentDetailPage'
 import DocumentUploadPage from './pages/DocumentUploadPage'
 import ForbiddenPage from './pages/ForbiddenPage'
@@ -26,7 +27,7 @@ export default function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/alerts" element={<AlertsPage />} />
           <Route element={<ProtectedRoute ability="view-dashboard" />}>
-            <Route path="/dashboard" element={<HomePage />} />
+            <Route path="/dashboard" element={<DashboardPage />} />
           </Route>
           <Route element={<ProtectedRoute ability="use-ai-assistant" />}>
             <Route path="/assistant" element={<AssistantPage />} />

@@ -22,6 +22,23 @@ class ComplianceRequirementDetailResource extends JsonResource
     public function toArray(Request $request): array
     {
         $categories = DB::table('document_categories')->pluck('name', 'code');
+        $user = $request->user();
+        $isGeneralEmployee = $user && ($user->role === 'general_employee' || (isset($user->role->value) && $user->role->value === 'general_employee'));
+
+        $responsibleUserPayload = null;
+        if ($this->relationLoaded('responsibleUser') && $this->responsibleUser) {
+            $responsibleUserPayload = $isGeneralEmployee
+                ? [
+                    'id' => $this->responsibleUser->id,
+                    'name' => $this->responsibleUser->name,
+                ]
+                : [
+                    'id' => $this->responsibleUser->id,
+                    'name' => $this->responsibleUser->name,
+                    'email' => $this->responsibleUser->email,
+                    'phone' => UserResource::maskPhone($this->responsibleUser->phone),
+                ];
+        }
 
         return [
             'id' => $this->id,
@@ -33,9 +50,7 @@ class ComplianceRequirementDetailResource extends JsonResource
                 'code' => $this->status,
                 'label' => RequirementMessages::STATUSES[$this->status] ?? $this->status,
             ],
-            'responsible_user' => $this->responsibleUser
-                ? ['id' => $this->responsibleUser->id, 'name' => $this->responsibleUser->name]
-                : null,
+            'responsible_user' => $responsibleUserPayload,
             'required_documents' => $this->requiredDocuments
                 ->sortBy('id')
                 ->values()

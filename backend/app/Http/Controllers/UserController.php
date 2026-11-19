@@ -5,16 +5,18 @@ namespace App\Http\Controllers;
 use App\Enums\Role;
 use App\Http\Requests\StoreUserRequest;
 use App\Http\Requests\UpdateUserRequest;
+use App\Http\Resources\UserResource;
 use App\Models\AuditLog;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class UserController extends Controller
 {
-    public function index(Request $request): JsonResponse
+    public function index(Request $request): AnonymousResourceCollection
     {
         $this->authorize('viewAny', User::class);
 
@@ -27,7 +29,7 @@ class UserController extends Controller
             ->orderBy('name')
             ->paginate(20);
 
-        return response()->json($users);
+        return UserResource::collection($users);
     }
 
     public function store(StoreUserRequest $request): JsonResponse

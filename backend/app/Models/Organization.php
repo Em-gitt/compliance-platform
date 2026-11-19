@@ -22,9 +22,21 @@ class Organization extends Model
         'saved' => OrganizationSaved::class,
     ];
 
+    protected $hidden = [
+        'tax_id',
+        'legal_representative_name',
+        'fiscal_address',
+    ];
+
     protected function casts(): array
     {
-        return ['business_activities' => 'array', 'is_active' => 'boolean'];
+        return [
+            'business_activities' => 'array',
+            'is_active' => 'boolean',
+            'tax_id' => 'encrypted',
+            'legal_representative_name' => 'encrypted',
+            'fiscal_address' => 'encrypted',
+        ];
     }
 
     public function users(): HasMany

@@ -60,7 +60,10 @@ class CriteriaValidator
             return ['all' => []];
         }
 
-        $key = array_key_exists('all', $criteria) ? 'all' : 'any';
+        $key = array_key_exists('all', $criteria) ? 'all' : (array_key_exists('any', $criteria) ? 'any' : null);
+        if ($key === null) {
+            return $criteria;
+        }
 
         return [$key => array_map(function (array $item) {
             if (! array_key_exists('field', $item)) {

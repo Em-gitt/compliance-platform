@@ -19,7 +19,11 @@ use App\Policies\AuditLogPolicy;
 use App\Policies\ComplianceRequirementPolicy;
 use App\Policies\DocumentPolicy;
 use App\Policies\UserPolicy;
+use App\Support\AssistantMessages;
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 
@@ -58,6 +62,15 @@ class AppServiceProvider extends ServiceProvider
         Document::observe(DocumentObserver::class);
         DocumentVersion::observe(DocumentVersionObserver::class);
         RequiredDocument::observe(RequiredDocumentObserver::class);
+
+        // CMP-33: 20 questions per minute per user.
+        RateLimiter::for('assistant-questions', fn (Request $request) => Limit::perMinute(20)
+            ->by('assistant:'.$request->user()?->id)
+            ->response(fn (Request $request, array $headers) => response()->json(
+                ['message' => AssistantMessages::TOO_MANY_QUESTIONS],
+                429,
+                $headers,
+            )));
 
         if ($this->app->environment('production')) {
             URL::forceScheme('https');

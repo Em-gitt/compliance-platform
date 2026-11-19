@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import IdleTimeoutModal from './components/IdleTimeoutModal'
 import ProtectedRoute from './components/ProtectedRoute'
+import AssistantPage from './pages/AssistantPage'
 import AuditLogPage from './pages/AuditLogPage'
 import DocumentDetailPage from './pages/DocumentDetailPage'
 import DocumentUploadPage from './pages/DocumentUploadPage'
@@ -22,7 +23,7 @@ export default function App() {
             <Route path="/dashboard" element={<HomePage />} />
           </Route>
           <Route element={<ProtectedRoute ability="use-ai-assistant" />}>
-            <Route path="/assistant" element={<HomePage />} />
+            <Route path="/assistant" element={<AssistantPage />} />
           </Route>
           <Route element={<ProtectedRoute ability="upload-documents" />}>
             <Route path="/documents/new" element={<DocumentUploadPage />} />

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AlertController;
+use App\Http\Controllers\AssistantController;
 use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DocumentController;
@@ -50,6 +51,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::post('/auth/logout', [AuthController::class, 'logout']);
     Route::get('/auth/me', [AuthController::class, 'me']);
+
+    Route::post('/assistant/questions', [AssistantController::class, 'ask'])->middleware('throttle:assistant-questions');
+    Route::get('/assistant/questions', [AssistantController::class, 'index']);
 });
 
 Route::get('/health', HealthController::class);

@@ -2,6 +2,7 @@
 
 namespace App\Policies;
 
+use App\Enums\Role;
 use App\Models\Organization;
 use App\Models\User;
 use App\Support\OrganizationMessages;
@@ -14,7 +15,9 @@ class OrganizationPolicy
      */
     public function create(User $user): Response
     {
-        return $user->role === 'administrator'
+        $role = $user->role instanceof Role ? $user->role->value : (string) $user->role;
+
+        return $role === 'administrator'
             ? Response::allow()
             : Response::deny(OrganizationMessages::FORBIDDEN);
     }

@@ -16,11 +16,11 @@ const EXISTING_LEGAL_NAME = 'Existing Organization, S.A. de C.V.';
 beforeEach(function (): void {
     $this->seed(CatalogSeeder::class);
 
-    $this->existing = Organization::query()->create([
+    $this->existing = Organization::withoutEvents(fn () => Organization::query()->create([
         'legal_name' => EXISTING_LEGAL_NAME, 'organization_type' => 'private_company',
         'industry' => 'technology', 'state' => '09', 'municipality' => 'Cuauhtemoc',
         'employees_count' => 10, 'business_activities' => ['51'],
-    ]);
+    ]));
 
     $makeUser = fn (string $role) => User::query()->create([
         'organization_id' => $this->existing->id, 'name' => ucfirst($role),

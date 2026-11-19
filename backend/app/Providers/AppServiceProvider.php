@@ -18,6 +18,7 @@ use App\Observers\RequiredDocumentObserver;
 use App\Policies\AuditLogPolicy;
 use App\Policies\ComplianceRequirementPolicy;
 use App\Policies\DocumentPolicy;
+use App\Policies\OrganizationPolicy;
 use App\Policies\UserPolicy;
 use App\Support\AssistantMessages;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -47,6 +48,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(User::class, UserPolicy::class);
         Gate::policy(ComplianceRequirement::class, ComplianceRequirementPolicy::class);
         Gate::policy(AuditLog::class, AuditLogPolicy::class);
+        Gate::policy(Organization::class, OrganizationPolicy::class);
 
         Gate::define('manage-users', fn ($user): bool => $user->role === Role::Administrator);
         Gate::define('manage-organization', fn ($user): bool => $user->role === Role::Administrator);

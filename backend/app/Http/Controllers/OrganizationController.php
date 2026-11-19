@@ -20,7 +20,7 @@ class OrganizationController extends Controller
     public function store(StoreOrganizationRequest $request): JsonResponse
     {
         $organization = DB::transaction(function () use ($request): Organization {
-            $organization = Organization::query()->create($request->organizationData());
+            $organization = Organization::withoutEvents(fn () => Organization::query()->create($request->organizationData()));
 
             AuditLog::query()->create([
                 'user_id' => $request->user()->id,

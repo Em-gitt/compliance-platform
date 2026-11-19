@@ -22,6 +22,30 @@ class DocumentController extends Controller
     public function __construct(protected DocumentEncryptionService $encryptionService) {}
 
     /**
+     * List documents visible to the authenticated user.
+     */
+    public function index(Request $request): JsonResponse
+    {
+        $this->authorize('viewAny', Document::class);
+        $user = $request->user();
+
+        $query = Document::query()->visibleTo($user)->with(['currentVersion', 'creator']);
+
+        if ($request->filled('category')) {
+            $query->where('category', $request->query('category'));
+        }
+
+        if ($request->filled('search')) {
+            $search = (string) $request->query('search');
+            $query->where('name', 'like', "%{$search}%");
+        }
+
+        $documents = $query->orderBy('name')->get();
+
+        return response()->json($documents);
+    }
+
+    /**
      * Store a newly uploaded document and its first version.
      */
     public function store(StoreDocumentRequest $request): JsonResponse

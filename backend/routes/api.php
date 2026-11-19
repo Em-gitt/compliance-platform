@@ -23,6 +23,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/users/{user}/deactivate', [UserController::class, 'deactivate']);
     Route::post('/users/{user}/activate', [UserController::class, 'activate']);
 
+    Route::get('/documents', [DocumentController::class, 'index']);
     Route::post('/documents', [DocumentController::class, 'store']);
     Route::get('/documents/{document}', [DocumentController::class, 'show']);
     Route::get('/documents/{document}/versions', [DocumentController::class, 'versions']);

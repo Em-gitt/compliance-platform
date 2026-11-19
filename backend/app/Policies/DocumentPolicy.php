@@ -10,6 +10,14 @@ use Illuminate\Auth\Access\Response;
 class DocumentPolicy
 {
     /**
+     * Determine whether the user can list documents.
+     */
+    public function viewAny(User $user): Response
+    {
+        return Response::allow();
+    }
+
+    /**
      * Determine whether the user can create/upload documents.
      */
     public function create(User $user): Response

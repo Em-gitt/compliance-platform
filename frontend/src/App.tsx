@@ -8,6 +8,8 @@ import DocumentUploadPage from './pages/DocumentUploadPage'
 import ForbiddenPage from './pages/ForbiddenPage'
 import HomePage from './pages/HomePage'
 import LoginPage from './pages/LoginPage'
+import RequirementDetailPage from './pages/RequirementDetailPage'
+import RequirementsListPage from './pages/RequirementsListPage'
 import UsersPage from './pages/UsersPage'
 
 export default function App() {
@@ -30,6 +32,10 @@ export default function App() {
           </Route>
           <Route element={<ProtectedRoute ability="view-documents" />}>
             <Route path="/documents/:id" element={<DocumentDetailPage />} />
+          </Route>
+          <Route element={<ProtectedRoute ability="manage-requirements" />}>
+            <Route path="/requirements" element={<RequirementsListPage />} />
+            <Route path="/requirements/:id" element={<RequirementDetailPage />} />
           </Route>
           <Route element={<ProtectedRoute ability="manage-users" />}>
             <Route path="/admin/users" element={<UsersPage />} />

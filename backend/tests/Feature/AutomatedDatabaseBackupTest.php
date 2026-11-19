@@ -46,13 +46,13 @@ it('generates an AES256 GPG-encrypted database dump and records OK in backup.log
     expect($logContent)->toContain(basename($encryptedFile));
 
     // Acceptance criterion #3: Backup file cannot be opened without GPG passphrase
-    $decryptFailProcess = new Process(['gpg', '--batch', '-d', $encryptedFile]);
+    $decryptFailProcess = new Process(['gpg', '--batch', '--pinentry-mode', 'cancel', '-d', $encryptedFile]);
     $decryptFailProcess->run();
     expect($decryptFailProcess->isSuccessful())->toBeFalse();
 
     // Can be decrypted with correct passphrase
     $decryptSuccessProcess = new Process([
-        'gpg', '--batch', '--yes', '--passphrase', $passphrase, '-d', $encryptedFile,
+        'gpg', '--batch', '--yes', '--pinentry-mode', 'loopback', '--passphrase', $passphrase, '-d', $encryptedFile,
     ]);
     $decryptSuccessProcess->run();
     expect($decryptSuccessProcess->isSuccessful())->toBeTrue();

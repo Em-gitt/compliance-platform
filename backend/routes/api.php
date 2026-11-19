@@ -60,6 +60,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::post('/assistant/questions', [AssistantController::class, 'ask'])->middleware('throttle:assistant-questions');
     Route::get('/assistant/questions', [AssistantController::class, 'index']);
+    Route::post('/assistant/questions/{id}/feedback', [AssistantController::class, 'feedback']);
+    Route::get('/admin/ai-feedback', [AssistantController::class, 'adminFeedbackIndex']);
+    Route::get('/admin/ai-feedback/export', [AssistantController::class, 'exportFeedback']);
     Route::get('/citations/{chunk_id}', [CitationController::class, 'show']);
 });
 

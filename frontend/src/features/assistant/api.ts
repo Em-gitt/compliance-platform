@@ -16,6 +16,11 @@ export type Citation = {
   score?: number
 }
 
+export type AiFeedbackData = {
+  rating: 'useful' | 'not_useful'
+  comment?: string | null
+}
+
 export type AiQuestion = {
   id: number
   question: string
@@ -25,6 +30,7 @@ export type AiQuestion = {
   disclaimer: string | null
   latency_ms: number
   created_at: string | null
+  feedback?: AiFeedbackData | null
 }
 
 export async function askQuestion(question: string): Promise<AiQuestion> {
@@ -37,6 +43,19 @@ export async function askQuestion(question: string): Promise<AiQuestion> {
 export async function fetchQuestionHistory(): Promise<AiQuestion[]> {
   const res = await api.get<{ data: AiQuestion[] }>('/api/assistant/questions')
   return res.data.data
+}
+
+export async function sendAiFeedback(
+  questionId: number,
+  rating: 'useful' | 'not_useful',
+  comment?: string,
+): Promise<{ message: string; feedback?: unknown }> {
+  await api.get('/sanctum/csrf-cookie')
+  const res = await api.post<{ message: string; feedback?: unknown }>(
+    `/api/assistant/questions/${questionId}/feedback`,
+    { rating, comment: comment || null },
+  )
+  return res.data
 }
 
 // Same rules as backend/app/Http/Requests/AskQuestionRequest.php.

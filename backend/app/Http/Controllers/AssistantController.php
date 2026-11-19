@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\Role;
 use App\Http\Requests\AskQuestionRequest;
 use App\Http\Resources\AiQuestionResource;
+use App\Models\AiFeedback;
 use App\Models\AiQuestion;
 use App\Services\AiServiceClient;
 use App\Services\AllowedDocumentResolver;
@@ -77,6 +79,7 @@ class AssistantController extends Controller
     public function index(Request $request): AnonymousResourceCollection
     {
         $questions = AiQuestion::query()
+            ->with('feedback')
             ->where('user_id', $request->user()->id)
             ->orderByDesc('created_at')
             ->orderByDesc('id')
@@ -84,6 +87,111 @@ class AssistantController extends Controller
             ->get();
 
         return AiQuestionResource::collection($questions);
+    }
+
+    /**
+     * POST /api/assistant/questions/{id}/feedback (CMP-35 / FR-019).
+     */
+    public function feedback(Request $request, int $id): JsonResponse
+    {
+        $question = AiQuestion::find($id);
+
+        if (!$question) {
+            return response()->json(['message' => 'Question not found.'], 404);
+        }
+
+        if ($question->user_id !== $request->user()->id) {
+            return response()->json(['message' => 'You can only rate your own answers.'], 403);
+        }
+
+        $rating = $request->input('rating');
+        if (!in_array($rating, ['useful', 'not_useful'], true)) {
+            return response()->json([
+                'message' => 'Select Useful or Not useful.',
+                'errors' => ['rating' => ['Select Useful or Not useful.']],
+            ], 422);
+        }
+
+        $comment = $request->input('comment');
+        if ($comment !== null && mb_strlen($comment) > 500) {
+            return response()->json([
+                'message' => 'Comments can be up to 500 characters.',
+                'errors' => ['comment' => ['Comments can be up to 500 characters.']],
+            ], 422);
+        }
+
+        $feedback = AiFeedback::updateOrCreate(
+            [
+                'ai_question_id' => $question->id,
+                'user_id' => $request->user()->id,
+            ],
+            [
+                'rating' => $rating,
+                'comment' => $comment,
+            ]
+        );
+
+        return response()->json([
+            'message' => 'Thanks for your feedback.',
+            'feedback' => $feedback,
+        ], 200);
+    }
+
+    /**
+     * GET /api/admin/ai-feedback (CMP-35).
+     */
+    public function adminFeedbackIndex(Request $request): mixed
+    {
+        if ($request->user()->role !== Role::Administrator) {
+            return response()->json(['message' => 'Unauthorized.'], 403);
+        }
+
+        if ($request->query('export') === 'csv' || $request->header('Accept') === 'text/csv') {
+            return $this->exportFeedback($request);
+        }
+
+        $feedbacks = AiFeedback::query()
+            ->with(['user:id,name,email', 'question:id,question,answer'])
+            ->latest('id')
+            ->paginate(50);
+
+        return response()->json($feedbacks);
+    }
+
+    /**
+     * GET /api/admin/ai-feedback/export (CMP-35).
+     */
+    public function exportFeedback(Request $request): mixed
+    {
+        if ($request->user()->role !== Role::Administrator) {
+            return response()->json(['message' => 'Unauthorized.'], 403);
+        }
+
+        $feedbacks = AiFeedback::query()
+            ->with(['user', 'question'])
+            ->latest('id')
+            ->get();
+
+        $csv = "id,user_id,user_name,user_email,ai_question_id,question,rating,comment,created_at\n";
+        foreach ($feedbacks as $item) {
+            $csv .= sprintf(
+                "%d,%d,\"%s\",\"%s\",%d,\"%s\",\"%s\",\"%s\",\"%s\"\n",
+                $item->id,
+                $item->user_id,
+                str_replace('"', '""', $item->user?->name ?? ''),
+                str_replace('"', '""', $item->user?->email ?? ''),
+                $item->ai_question_id,
+                str_replace('"', '""', $item->question?->question ?? ''),
+                $item->rating,
+                str_replace('"', '""', $item->comment ?? ''),
+                $item->created_at?->toIso8601String() ?? ''
+            );
+        }
+
+        return response($csv, 200, [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => 'attachment; filename="ai-feedback.csv"',
+        ]);
     }
 
     private function failure(int $userId, string $question, int $started, bool $timedOut): JsonResponse

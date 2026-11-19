@@ -6,7 +6,9 @@ import {
   askQuestion,
   fetchQuestionHistory,
   messageForError,
+  sendAiFeedback,
   validateQuestion,
+  type AiFeedbackData,
   type AiQuestion,
   type Citation,
 } from '../features/assistant/api'
@@ -61,6 +63,123 @@ export function citationLabel(citation: Citation): string {
   return parts.join(', ')
 }
 
+function FeedbackWidget({ questionId, initialFeedback }: { questionId: number; initialFeedback?: AiFeedbackData | null }) {
+  const [rating, setRating] = useState<'useful' | 'not_useful' | null>(initialFeedback?.rating ?? null)
+  const [comment, setComment] = useState(initialFeedback?.comment ?? '')
+  const [submitted, setSubmitted] = useState(Boolean(initialFeedback))
+  const [statusMessage, setStatusMessage] = useState<string | null>(initialFeedback ? 'Thanks for your feedback.' : null)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  const handleRatingClick = async (newRating: 'useful' | 'not_useful') => {
+    setRating(newRating)
+    setErrorMessage(null)
+    if (newRating === 'useful') {
+      setIsSubmitting(true)
+      try {
+        const res = await sendAiFeedback(questionId, 'useful')
+        setSubmitted(true)
+        setStatusMessage(res.message || 'Thanks for your feedback.')
+      } catch (err: unknown) {
+        const axiosError = err as { response?: { data?: { message?: string } } }
+        setErrorMessage(axiosError.response?.data?.message || 'Failed to submit feedback.')
+      } finally {
+        setIsSubmitting(false)
+      }
+    } else {
+      setSubmitted(false)
+    }
+  }
+
+  const handleSendFeedback = async () => {
+    if (!rating) return
+    if (comment.length > 500) {
+      setErrorMessage('Comments can be up to 500 characters.')
+      return
+    }
+    setIsSubmitting(true)
+    setErrorMessage(null)
+    try {
+      const res = await sendAiFeedback(questionId, rating, comment)
+      setSubmitted(true)
+      setStatusMessage(res.message || 'Thanks for your feedback.')
+    } catch (err: unknown) {
+      const axiosError = err as { response?: { data?: { message?: string } } }
+      setErrorMessage(axiosError.response?.data?.message || 'Failed to submit feedback.')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  return (
+    <div data-testid="feedback-section" className="mt-3 border-t border-gray-100 pt-2">
+      <div className="flex items-center gap-2">
+        <span className="text-xs text-gray-500">Was this helpful?</span>
+        <button
+          type="button"
+          title="Useful"
+          aria-label="Useful"
+          disabled={isSubmitting}
+          onClick={() => handleRatingClick('useful')}
+          className={`rounded p-1 text-gray-400 hover:text-gray-700 transition-colors ${rating === 'useful' ? 'bg-green-100 text-green-700 font-bold' : ''}`}
+        >
+          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5" />
+          </svg>
+        </button>
+        <button
+          type="button"
+          title="Not useful"
+          aria-label="Not useful"
+          disabled={isSubmitting}
+          onClick={() => handleRatingClick('not_useful')}
+          className={`rounded p-1 text-gray-400 hover:text-gray-700 transition-colors ${rating === 'not_useful' ? 'bg-red-100 text-red-700 font-bold' : ''}`}
+        >
+          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14H5.236a2 2 0 01-1.789-2.894l3.5-7A2 2 0 018.736 3h4.018c.163 0 .326.02.485.06L17 4m-7 10v5a2 2 0 002 2h.095c.5 0 .905-.405.905-.905 0-.714.211-1.412.608-2.006L17 13V4m-7 10h2m5-10h2a2 2 0 012 2v6a2 2 0 01-2 2h-2.5" />
+          </svg>
+        </button>
+        {statusMessage && (
+          <span data-testid="feedback-status" className="text-xs text-green-700 font-medium ml-2">
+            {statusMessage}
+          </span>
+        )}
+      </div>
+
+      {rating === 'not_useful' && !submitted && (
+        <div className="mt-2 space-y-2">
+          <textarea
+            aria-label="Tell us what was wrong (optional)"
+            placeholder="Tell us what was wrong (optional)"
+            maxLength={500}
+            rows={2}
+            value={comment}
+            onChange={(e) => setComment(e.target.value)}
+            className="w-full text-xs rounded border border-gray-300 p-2 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+          />
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] text-gray-400">{comment.length}/500</span>
+            <button
+              type="button"
+              disabled={isSubmitting}
+              onClick={handleSendFeedback}
+              className="rounded bg-blue-600 px-2.5 py-1 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+            >
+              Send feedback
+            </button>
+          </div>
+        </div>
+      )}
+
+      {errorMessage && (
+        <p data-testid="feedback-error" className="mt-1 text-xs text-red-600">
+          {errorMessage}
+        </p>
+      )}
+    </div>
+  )
+}
+
 function AnswerBubble({ record, onSelectCitation }: { record: AiQuestion; onSelectCitation?: (citation: Citation) => void }) {
   return (
     <div data-testid="answer-bubble">
@@ -83,7 +202,7 @@ function AnswerBubble({ record, onSelectCitation }: { record: AiQuestion; onSele
         </ol>
       )}
       {record.disclaimer && <p className="mt-2 text-xs text-gray-500">{record.disclaimer}</p>}
-      {/* Feedback buttons (useful / not useful) are added by CMP-35 here. */}
+      <FeedbackWidget questionId={record.id} initialFeedback={record.feedback} />
     </div>
   )
 }

@@ -199,4 +199,55 @@ describe('AssistantPage', () => {
     const list = await screen.findByRole('list', { name: 'Previous questions' })
     expect(await within(list).findByText('How long must we keep payroll records?')).toBeInTheDocument()
   })
+
+  it('submits Useful feedback on answer and displays Thanks for your feedback.', async () => {
+    mockGet()
+    vi.mocked(api.post)
+      .mockResolvedValueOnce({ data: { data: answer } })
+      .mockResolvedValueOnce({ data: { message: 'Thanks for your feedback.' } })
+
+    renderAssistant()
+    await screen.findByPlaceholderText(T.placeholder)
+    type('How long must we keep payroll records?')
+    pressEnter()
+
+    const bubble = await screen.findByTestId('answer-bubble')
+    const usefulBtn = within(bubble).getByRole('button', { name: 'Useful' })
+    fireEvent.click(usefulBtn)
+
+    expect(await within(bubble).findByText('Thanks for your feedback.')).toBeInTheDocument()
+    expect(api.post).toHaveBeenCalledWith('/api/assistant/questions/10/feedback', {
+      rating: 'useful',
+      comment: null,
+    })
+  })
+
+  it('clicking Not useful reveals comment textarea and sends feedback on click', async () => {
+    mockGet()
+    vi.mocked(api.post)
+      .mockResolvedValueOnce({ data: { data: answer } })
+      .mockResolvedValueOnce({ data: { message: 'Thanks for your feedback.' } })
+
+    renderAssistant()
+    await screen.findByPlaceholderText(T.placeholder)
+    type('How long must we keep payroll records?')
+    pressEnter()
+
+    const bubble = await screen.findByTestId('answer-bubble')
+    const notUsefulBtn = within(bubble).getByRole('button', { name: 'Not useful' })
+    fireEvent.click(notUsefulBtn)
+
+    const textareaFeedback = within(bubble).getByPlaceholderText('Tell us what was wrong (optional)')
+    expect(textareaFeedback).toBeInTheDocument()
+    fireEvent.change(textareaFeedback, { target: { value: 'Incomplete explanation' } })
+
+    const sendBtn = within(bubble).getByRole('button', { name: 'Send feedback' })
+    fireEvent.click(sendBtn)
+
+    expect(await within(bubble).findByText('Thanks for your feedback.')).toBeInTheDocument()
+    expect(api.post).toHaveBeenCalledWith('/api/assistant/questions/10/feedback', {
+      rating: 'not_useful',
+      comment: 'Incomplete explanation',
+    })
+  })
 })

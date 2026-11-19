@@ -21,7 +21,7 @@
 | **V1** | 21/09/2026 | Initial Software Requirements Specification. |
 | **Audit** | 23/09/2026 | Requirements quality audit: individual requirements, conflicts, incomplete areas, non-functional coverage, traceability, and clarification questions. |
 | **V2** | 28/09/2026 | Corrected requirements from the audit; standardized terminology and priorities; added permissions matrix, glossary, expanded traceability matrix, audit resolution log, and consolidated open issues (OI-01 to OI-22). |
-| **V3 (Draft)** | **19/10/2026** | **Resolved deployment and operations open issues (OI-07, OI-15, OI-16, OI-17) through Architecture Decision Records ADR-030, ADR-031, ADR-032, and ADR-033.** Defined target cloud infrastructure (DigitalOcean VPS, 4 vCPU / 8 GB RAM), authenticated normal-load testing profile (100 concurrent users with 50/20/10/10/10% distribution), scheduled weekly maintenance window (Sundays 02:00-04:00 America/Mexico_City; 1-minute HTTP health probe downtime rule), and disaster recovery standards (RTO 4 hours, RPO 24 hours, GPG AES-256 pre-upload backup encryption). |
+| **V3 (Draft)** | **19/10/2026** | **Resolved deployment and operations open issues (OI-07, OI-15, OI-16, OI-17) through Architecture Decision Records ADR-030, ADR-031, ADR-032, and ADR-033.** Defined target cloud infrastructure (DigitalOcean VPS, 4 vCPU / 8 GB RAM), authenticated normal-load testing profile (100 concurrent users with 50/20/10/10/10% distribution), scheduled weekly maintenance window (Sundays 02:00-04:00 America/Mexico_City; 1-minute HTTP health probe downtime rule), and disaster recovery standards (RTO 4 hours, RPO 24 hours, GPG AES-256 pre-upload backup encryption). Added FR-019 (AI Answer Feedback) per CMP-35. |
 
 ---
 
@@ -32,6 +32,26 @@ This Version 3 (V3 Draft) specifically resolves the operational and deployment b
 2. **CMP-40 / CMP-41:** Automated database/document backup routines and verification of the tested recovery runbook.
 3. **CMP-42:** Synthetic uptime monitoring probes, alert thresholds, and SLA reporting.
 4. **CMP-44:** Automated multi-user performance and load testing.
+5. **CMP-35:** AI answer feedback mechanism (FR-019).
+
+---
+
+## 2.1 Added Functional Requirements (FR)
+
+### FR-019: AI Answer Feedback
+* **Priority:** Could
+* **Category:** AI Regulatory Assistant / Quality Assurance
+* **Requirement:** The system shall allow authenticated users to submit feedback on generated AI answers by rating them as useful or not useful, optionally accompanied by a qualitative text comment up to 500 characters.
+* **Functional Details:**
+  1. The user interface shall provide thumbs-up (tooltip "Useful") and thumbs-down (tooltip "Not useful") buttons beneath each AI assistant response.
+  2. Selecting "Not useful" reveals an optional text input area with the placeholder "Tell us what was wrong (optional)" with a character limit of 500 characters and a "Send feedback" submission button.
+  3. The system shall enforce that users can only submit feedback for questions asked by themselves (`403: You can only rate your own answers.`).
+  4. The system shall validate that the rating is strictly `useful` or `not_useful` (`422: Select Useful or Not useful.`).
+  5. The system shall validate that comments do not exceed 500 characters (`422: Comments can be up to 500 characters.`).
+  6. On successful submission or update, the system responds with `200: Thanks for your feedback.` and records `user_id`, `ai_question_id`, `rating`, `comment`, and timestamps in the `ai_feedback` table.
+  7. Users may update their previously submitted rating/comment; only one feedback record is stored per user per question.
+  8. Administrators can view feedback records and export them in CSV format via `/admin/ai-feedback`.
+* **Traceability:** Unblocks Jira issue **CMP-35 (KAN-143)**.
 
 ---
 

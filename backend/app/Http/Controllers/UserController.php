@@ -53,7 +53,7 @@ class UserController extends Controller
             return $user;
         });
 
-        return response()->json(['message' => 'User created successfully.', 'user' => $user], 201);
+        return response()->json(['message' => 'User created successfully.', 'user' => new UserResource($user)], 201);
     }
 
     public function update(UpdateUserRequest $request, User $user): JsonResponse
@@ -79,7 +79,7 @@ class UserController extends Controller
             }
         });
 
-        return response()->json(['message' => 'User updated successfully.', 'user' => $user->fresh()]);
+        return response()->json(['message' => 'User updated successfully.', 'user' => new UserResource($user->fresh())]);
     }
 
     public function deactivate(Request $request, User $user): JsonResponse

@@ -154,3 +154,58 @@ test('AC #3: empty state when no applicable requirements exist', function () {
         ->assertJsonPath('summary.applicable_requirements', 0)
         ->assertJsonCount(0, 'requirements');
 });
+
+test('it renders dashboard in 5 or fewer database queries without N+1 regression', function () {
+    for ($i = 1; $i <= 10; $i++) {
+        $req = ComplianceRequirement::create([
+            'organization_id' => $this->org->id,
+            'name' => "Requirement {$i}",
+            'description' => 'Desc',
+            'regulation' => "REG-{$i}",
+            'deadline' => Carbon::now()->addDays($i)->toDateString(),
+            'responsible_user_id' => $this->staff->id,
+            'status' => 'pending',
+            'applies' => true,
+            'notification_periods' => [30, 15, 7, 1],
+            'created_by' => $this->staff->id,
+        ]);
+
+        $doc = Document::create([
+            'organization_id' => $this->org->id,
+            'name' => "Document {$i}",
+            'category' => 'permit_license',
+            'access_level' => 'all_staff',
+            'is_archived' => false,
+            'created_by' => $this->staff->id,
+        ]);
+
+        DocumentVersion::create([
+            'document_id' => $doc->id,
+            'version_label' => 'v1',
+            'storage_path' => "docs/{$i}.pdf",
+            'original_filename' => "doc_{$i}.pdf",
+            'size_bytes' => 1024,
+            'sha256' => hash('sha256', "test-{$i}"),
+            'mime_type' => 'application/pdf',
+            'status' => 'processed',
+            'is_current' => true,
+            'uploaded_by' => $this->staff->id,
+            'uploaded_at' => now(),
+        ]);
+
+        RequiredDocument::create([
+            'compliance_requirement_id' => $req->id,
+            'name' => "Required {$i}",
+            'category' => 'permit_license',
+            'document_id' => $doc->id,
+        ]);
+    }
+
+    DB::enableQueryLog();
+    $res = $this->actingAs($this->staff)->getJson('/api/dashboard');
+    $queries = DB::getQueryLog();
+    DB::disableQueryLog();
+
+    $res->assertOk();
+    expect(count($queries))->toBeLessThanOrEqual(5);
+});

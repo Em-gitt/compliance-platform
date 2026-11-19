@@ -114,18 +114,16 @@ class AppServiceProvider extends ServiceProvider
         // CMP-17: applicability evaluation (FR-007, ADR-021).
         // Organization changes can affect every requirement, so they go to the queue.
         Event::listen(OrganizationSaved::class, function (OrganizationSaved $event) {
-            if (app()->runningUnitTests()) {
-                EvaluateApplicability::dispatchSync(
-                    $event->organization->id,
-                    null,
-                    EvaluateApplicability::REASON_ORGANIZATION,
-                );
+            $job = new EvaluateApplicability(
+                $event->organization->id,
+                null,
+                EvaluateApplicability::REASON_ORGANIZATION,
+            );
+
+            if (app()->environment('testing')) {
+                dispatch_sync($job);
             } else {
-                EvaluateApplicability::dispatch(
-                    $event->organization->id,
-                    null,
-                    EvaluateApplicability::REASON_ORGANIZATION,
-                )->afterCommit();
+                dispatch($job)->afterCommit();
             }
         });
 

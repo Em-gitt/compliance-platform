@@ -19,6 +19,7 @@ class IngestResponse(BaseModel):
     chunks: int = Field(default=42, examples=[42])
     pages: int = Field(default=12, examples=[12])
     ocr_used: bool = Field(default=False, examples=[False])
+    ocr_confidence: float | None = Field(default=None, examples=[95.4])
 
 
 class SetCurrentRequest(BaseModel):

@@ -15,6 +15,7 @@ from app.extraction import (
     UnsupportedFormatError,
     extract,
 )
+from app.extraction.ocr import OcrError, OcrPageLimitExceededError, extract_ocr
 from app import db
 from app.indexing import store as chunk_store
 from app.indexing.embeddings import INDEXING_FAILED_MESSAGE, EmbeddingError
@@ -319,6 +320,7 @@ async def ingest_document(
     extraction_mime = normalized_mime if is_valid_mime else MIME_BY_EXTENSION[ext]
     file_bytes = await file.read()
     ocr_used = False
+    ocr_confidence: float | None = None
     try:
         segments = extract(file_bytes, extraction_mime)
         pages = max((segment.page or 0 for segment in segments), default=0)
@@ -334,10 +336,25 @@ async def ingest_document(
             detail={"error_code": "EXTRACTION_FAILED", "message": DAMAGED_FILE_MESSAGE},
         ) from exc
     except OcrRequiredError as exc:
-        # Scanned PDF: handed to OCR, which is implemented in CMP-26.
-        segments = []
-        pages = exc.page_count
-        ocr_used = True
+        if exc.page_count > 100:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail={"error_code": "VALIDATION_ERROR", "message": "Scanned documents can have up to 100 pages."},
+            )
+        try:
+            segments, ocr_confidence = await run_in_threadpool(extract_ocr, file_bytes)
+            pages = max((segment.page or 0 for segment in segments), default=exc.page_count)
+            ocr_used = True
+        except OcrPageLimitExceededError as ocr_exc:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail={"error_code": ocr_exc.error_code, "message": ocr_exc.message},
+            ) from ocr_exc
+        except OcrError as ocr_exc:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail={"error_code": ocr_exc.error_code, "message": ocr_exc.message},
+            ) from ocr_exc
 
     if "provider_not_authorized" in lower_name:
         raise HTTPException(
@@ -376,6 +393,7 @@ async def ingest_document(
         chunks=chunks,
         pages=pages,
         ocr_used=ocr_used,
+        ocr_confidence=ocr_confidence,
     )
 
 

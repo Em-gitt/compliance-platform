@@ -307,4 +307,44 @@ describe('DocumentDetailPage', () => {
     expect(await screen.findByTestId('doc-name')).toBeInTheDocument()
     expect(screen.queryByTestId('upload-new-version-button')).not.toBeInTheDocument()
   })
+
+  it('renders "Text obtained by OCR" badge and extraction method when ocr_used is true', async () => {
+    vi.mocked(api.get).mockResolvedValue({
+      data: {
+        id: 10,
+        name: 'Constancia de Uso de Suelo',
+        category: 'permit_license',
+        access_level: 'all_staff',
+        current_version: '1.0',
+        ocr_used: true,
+        ocr_confidence: 95.4,
+        versions: [
+          {
+            id: 1,
+            version: '1.0',
+            uploaded_by: 'Jane Doe',
+            upload_date: '04/11/2026 10:30',
+            status: 'processed',
+            expiration_date: '30/11/2026',
+            is_current: true,
+            ocr_used: true,
+            ocr_confidence: 95.4,
+          },
+        ],
+      },
+    })
+
+    render(
+      <MemoryRouter initialEntries={['/documents/10']}>
+        <Routes>
+          <Route path="/documents/:id" element={<DocumentDetailPage />} />
+        </Routes>
+      </MemoryRouter>,
+    )
+
+    expect(await screen.findByTestId('doc-name')).toHaveTextContent('Constancia de Uso de Suelo')
+    expect(screen.getByTestId('ocr-badge')).toHaveTextContent('Text obtained by OCR')
+    expect(screen.getByTestId('doc-ocr-label')).toHaveTextContent('Text obtained by OCR')
+    expect(screen.getByTestId('doc-ocr-confidence')).toHaveTextContent('(95.4% confidence)')
+  })
 })

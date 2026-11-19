@@ -9,6 +9,8 @@ use App\Services\DocumentVersionProcessor;
 use App\Services\DocumentVersionService;
 use App\Services\Exceptions\AiServiceEmbeddingFailedException;
 use App\Services\Exceptions\AiServiceExtractionFailedException;
+use App\Services\Exceptions\AiServiceOcrFailedException;
+use App\Services\Exceptions\AiServiceValidationException;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -87,6 +89,10 @@ class ProcessDocumentVersion implements ShouldQueue
         if (! $reason && $exception) {
             if ($exception instanceof AiServiceExtractionFailedException) {
                 $reason = DocumentVersion::extractionFailureMessage($exception->getMessage());
+            } elseif ($exception instanceof AiServiceOcrFailedException) {
+                $reason = DocumentVersion::MESSAGE_OCR_FAILED;
+            } elseif ($exception instanceof AiServiceValidationException) {
+                $reason = $exception->getMessage();
             } elseif ($exception instanceof AiServiceEmbeddingFailedException) {
                 $reason = DocumentVersion::MESSAGE_INDEXING_FAILED;
             } else {

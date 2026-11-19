@@ -345,6 +345,8 @@ class DocumentController extends Controller
                     'status' => $v->status,
                     'expiration_date' => $v->expiration_date ? $v->expiration_date->format('d/m/Y') : 'No expiration',
                     'is_current' => (bool) $v->is_current,
+                    'ocr_used' => (bool) $v->ocr_used,
+                    'ocr_confidence' => $v->ocr_confidence ? (float) $v->ocr_confidence : null,
                     'download_url' => "/api/documents/{$document->id}/versions/{$v->id}/download",
                     'failure_reason' => $v->failure_reason,
                 ];
@@ -393,6 +395,8 @@ class DocumentController extends Controller
                     'status' => $v->status,
                     'expiration_date' => $v->expiration_date ? $v->expiration_date->format('d/m/Y') : 'No expiration',
                     'is_current' => (bool) $v->is_current,
+                    'ocr_used' => (bool) $v->ocr_used,
+                    'ocr_confidence' => $v->ocr_confidence ? (float) $v->ocr_confidence : null,
                     'download_url' => "/api/documents/{$document->id}/versions/{$v->id}/download",
                     'failure_reason' => $v->failure_reason,
                 ];
@@ -414,6 +418,8 @@ class DocumentController extends Controller
             'uploaded_by' => $uploaderName,
             'processing_status' => $currentVersion?->status ?? 'queued',
             'status' => $currentVersion?->status ?? 'queued',
+            'ocr_used' => (bool) ($currentVersion?->ocr_used ?? false),
+            'ocr_confidence' => $currentVersion?->ocr_confidence ? (float) $currentVersion->ocr_confidence : null,
             'versions' => $versions,
             'document' => [
                 'id' => $document->id,
@@ -427,6 +433,8 @@ class DocumentController extends Controller
                 'uploaded_by' => $uploaderName,
                 'upload_date' => $uploadedAtFormatted,
                 'processing_status' => $currentVersion?->status ?? 'queued',
+                'ocr_used' => (bool) ($currentVersion?->ocr_used ?? false),
+                'ocr_confidence' => $currentVersion?->ocr_confidence ? (float) $currentVersion->ocr_confidence : null,
                 'versions' => $versions,
             ],
         ]);

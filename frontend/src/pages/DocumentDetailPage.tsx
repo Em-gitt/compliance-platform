@@ -16,6 +16,8 @@ export interface DocumentVersionData {
   is_current: boolean
   download_url?: string
   failure_reason?: string | null
+  ocr_used?: boolean
+  ocr_confidence?: number | null
 }
 
 export interface DocumentData {
@@ -34,6 +36,8 @@ export interface DocumentData {
   uploaded_by?: string
   processing_status?: string
   status?: string
+  ocr_used?: boolean
+  ocr_confidence?: number | null
   versions?: DocumentVersionData[]
 }
 
@@ -220,9 +224,19 @@ export default function DocumentDetailPage() {
       )}
 
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-gray-900" data-testid="doc-name">
-          {document.name}
-        </h1>
+        <div className="flex items-center space-x-3">
+          <h1 className="text-2xl font-bold text-gray-900" data-testid="doc-name">
+            {document.name}
+          </h1>
+          {document.ocr_used && (
+            <span
+              className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800"
+              data-testid="ocr-badge"
+            >
+              Text obtained by OCR
+            </span>
+          )}
+        </div>
         <div className="flex items-center space-x-4">
           {canUpload && (
             <button
@@ -339,6 +353,25 @@ export default function DocumentDetailPage() {
                 {statusDisplay}
               </span>
             </div>
+
+            {document.ocr_used && (
+              <div className="sm:col-span-2">
+                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider block">
+                  Extraction method
+                </span>
+                <span
+                  className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium mt-1 bg-purple-100 text-purple-800"
+                  data-testid="doc-ocr-label"
+                >
+                  Text obtained by OCR
+                </span>
+                {document.ocr_confidence !== undefined && document.ocr_confidence !== null && (
+                  <span className="text-xs text-gray-500 ml-2" data-testid="doc-ocr-confidence">
+                    ({document.ocr_confidence}% confidence)
+                  </span>
+                )}
+              </div>
+            )}
           </div>
         </div>
       )}

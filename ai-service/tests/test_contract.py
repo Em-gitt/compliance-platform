@@ -153,7 +153,8 @@ def test_ingest_file_without_text_returns_no_text_message():
     }
 
 
-def test_ingest_scanned_pdf_is_sent_to_ocr():
+def test_ingest_scanned_pdf_is_sent_to_ocr(database):
+    database.create_version()
     files = {"file": ("scan.pdf", io.BytesIO(documents.read("fire_extinguisher_inspection_scanned.pdf")), "application/pdf")}
     data = {**INGEST_FORM, "mime_type": "application/pdf"}
     r = client.post("/v1/documents/ingest", headers=AUTH_HEADERS, files=files, data=data)

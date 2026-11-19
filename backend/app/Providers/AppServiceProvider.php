@@ -22,6 +22,7 @@ use App\Policies\UserPolicy;
 use App\Support\AssistantMessages;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\URL;
@@ -74,6 +75,23 @@ class AppServiceProvider extends ServiceProvider
 
         if ($this->app->environment('production')) {
             URL::forceScheme('https');
+        }
+
+        try {
+            if (DB::connection()->getDriverName() === 'sqlite') {
+                $pdo = DB::connection()->getPdo();
+                if (method_exists($pdo, 'sqliteCreateFunction')) {
+                    @$pdo->sqliteCreateFunction('unaccent', function ($str) {
+                        if ($str === null) {
+                            return null;
+                        }
+                        $t = \Transliterator::create('NFD; [:Nonspacing Mark:] Remove; NFC;');
+
+                        return $t ? $t->transliterate($str) : (iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $str) ?: $str);
+                    });
+                }
+            }
+        } catch (\Throwable $e) {
         }
     }
 }

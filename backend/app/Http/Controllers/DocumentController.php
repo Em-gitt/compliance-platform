@@ -22,27 +22,136 @@ class DocumentController extends Controller
     public function __construct(protected DocumentEncryptionService $encryptionService) {}
 
     /**
-     * List documents visible to the authenticated user.
+     * List documents visible to the authenticated user with search and filters (CMP-27).
      */
     public function index(Request $request): JsonResponse
     {
         $this->authorize('viewAny', Document::class);
         $user = $request->user();
 
+        // 1. Date filter validation
+        $uploadedFrom = $this->parseDateFilter($request->query('uploaded_from'), $error1);
+        if ($error1) {
+            return response()->json(['message' => $error1], 422);
+        }
+
+        $uploadedTo = $this->parseDateFilter($request->query('uploaded_to'), $error2);
+        if ($error2) {
+            return response()->json(['message' => $error2], 422);
+        }
+
+        if ($uploadedFrom && $uploadedTo && $uploadedFrom->gt($uploadedTo)) {
+            return response()->json([
+                'message' => "The 'from' date must be before or equal to the 'to' date.",
+            ], 422);
+        }
+
+        $expiresFrom = $this->parseDateFilter($request->query('expires_from'), $error3);
+        if ($error3) {
+            return response()->json(['message' => $error3], 422);
+        }
+
+        $expiresTo = $this->parseDateFilter($request->query('expires_to'), $error4);
+        if ($error4) {
+            return response()->json(['message' => $error4], 422);
+        }
+
+        if ($expiresFrom && $expiresTo && $expiresFrom->gt($expiresTo)) {
+            return response()->json([
+                'message' => "The 'from' date must be before or equal to the 'to' date.",
+            ], 422);
+        }
+
+        // 2. Query builder
         $query = Document::query()->visibleTo($user)->with(['currentVersion', 'creator']);
 
+        // Name filter (accent- and case-insensitive)
+        $name = $request->query('name') ?? $request->query('search');
+        if (! empty($name)) {
+            $isPgsql = DB::connection()->getDriverName() === 'pgsql';
+            if ($isPgsql) {
+                $query->whereRaw('unaccent(name) ILIKE unaccent(?)', ["%{$name}%"]);
+            } else {
+                $query->whereRaw('lower(unaccent(name)) LIKE lower(unaccent(?))', ["%{$name}%"]);
+            }
+        }
+
+        // Category filter (array or single)
         if ($request->filled('category')) {
-            $query->where('category', $request->query('category'));
+            $cats = (array) $request->query('category');
+            $query->whereIn('category', $cats);
         }
 
-        if ($request->filled('search')) {
-            $search = (string) $request->query('search');
-            $query->where('name', 'like', "%{$search}%");
+        // Processing status filter
+        if ($request->filled('status')) {
+            $status = (string) $request->query('status');
+            $query->whereHas('currentVersion', fn ($q) => $q->where('status', $status));
         }
 
-        $documents = $query->orderBy('name')->get();
+        // Uploaded date filter
+        if ($uploadedFrom || $uploadedTo) {
+            $query->whereHas('currentVersion', function ($q) use ($uploadedFrom, $uploadedTo) {
+                if ($uploadedFrom) {
+                    $q->where('uploaded_at', '>=', $uploadedFrom->startOfDay());
+                }
+                if ($uploadedTo) {
+                    $q->where('uploaded_at', '<=', $uploadedTo->endOfDay());
+                }
+            });
+        }
 
-        return response()->json($documents);
+        // Expiration date filter
+        if ($expiresFrom || $expiresTo) {
+            $query->whereHas('currentVersion', function ($q) use ($expiresFrom, $expiresTo) {
+                if ($expiresFrom) {
+                    $q->where('expiration_date', '>=', $expiresFrom->toDateString());
+                }
+                if ($expiresTo) {
+                    $q->where('expiration_date', '<=', $expiresTo->toDateString());
+                }
+            });
+        }
+
+        $query->orderBy('name');
+
+        if ($request->has('page')) {
+            $paginator = $query->paginate(20);
+
+            return response()->json([
+                'data' => $paginator->items(),
+                'total' => $paginator->total(),
+                'current_page' => $paginator->currentPage(),
+                'last_page' => $paginator->lastPage(),
+                'per_page' => $paginator->perPage(),
+            ]);
+        }
+
+        $documents = $query->get();
+
+        return response()->json($documents)->header('X-Total-Count', (string) $documents->count());
+    }
+
+    private function parseDateFilter(?string $date, ?string &$error): ?\Carbon\Carbon
+    {
+        $error = null;
+        if ($date === null || trim($date) === '') {
+            return null;
+        }
+
+        try {
+            $parsed = \Carbon\Carbon::parse($date);
+            if ($parsed->year < 1900 || $parsed->year > 2200) {
+                $error = 'Enter a valid date.';
+
+                return null;
+            }
+
+            return $parsed;
+        } catch (\Throwable $e) {
+            $error = 'Enter a valid date.';
+
+            return null;
+        }
     }
 
     /**

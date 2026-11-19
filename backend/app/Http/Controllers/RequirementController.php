@@ -22,9 +22,85 @@ class RequirementController extends Controller
     {
         $this->authorize('viewAny', ComplianceRequirement::class);
         $user = $request->user();
-        $requirements = ComplianceRequirement::where('organization_id', $user->organization_id)
-            ->with(['requiredDocuments.document.currentVersion', 'responsibleUser'])
-            ->get();
+
+        // Date filter validation
+        $deadlineFrom = $this->parseDateFilter($request->query('deadline_from'), $error1);
+        if ($error1) {
+            return response()->json(['message' => $error1], 422);
+        }
+
+        $deadlineTo = $this->parseDateFilter($request->query('deadline_to'), $error2);
+        if ($error2) {
+            return response()->json(['message' => $error2], 422);
+        }
+
+        if ($deadlineFrom && $deadlineTo && $deadlineFrom->gt($deadlineTo)) {
+            return response()->json([
+                'message' => "The 'from' date must be before or equal to the 'to' date.",
+            ], 422);
+        }
+
+        $query = ComplianceRequirement::where('organization_id', $user->organization_id)
+            ->with(['requiredDocuments.document.currentVersion', 'responsibleUser']);
+
+        // Name filter (accent- and case-insensitive)
+        if ($request->filled('name')) {
+            $name = (string) $request->query('name');
+            $isPgsql = DB::connection()->getDriverName() === 'pgsql';
+            if ($isPgsql) {
+                $query->whereRaw('unaccent(name) ILIKE unaccent(?)', ["%{$name}%"]);
+            } else {
+                $query->whereRaw('lower(unaccent(name)) LIKE lower(unaccent(?))', ["%{$name}%"]);
+            }
+        }
+
+        // Regulation filter
+        if ($request->filled('regulation')) {
+            $reg = (string) $request->query('regulation');
+            $query->where('regulation', 'like', "%{$reg}%");
+        }
+
+        // Status filter (array or single)
+        if ($request->filled('status')) {
+            $statuses = (array) $request->query('status');
+            $query->whereIn('status', $statuses);
+        }
+
+        // Deadline range filter
+        if ($deadlineFrom) {
+            $query->where('deadline', '>=', $deadlineFrom->toDateString());
+        }
+        if ($deadlineTo) {
+            $query->where('deadline', '<=', $deadlineTo->toDateString());
+        }
+
+        $query->orderBy('deadline', 'asc');
+
+        if ($request->has('page')) {
+            $paginator = $query->paginate(20);
+            $data = collect($paginator->items())->map(function ($req) {
+                $missingCount = $this->statusService->missingDocumentsCount($req);
+                $totalCount = $req->requiredDocuments->count();
+
+                return array_merge($req->toArray(), [
+                    'missing_documents_count' => $missingCount,
+                    'all_documents_provided' => $totalCount > 0 && $missingCount === 0,
+                    'missing_documents_label' => $missingCount === 0
+                        ? 'All documents provided'
+                        : "{$missingCount} missing documents",
+                ]);
+            });
+
+            return response()->json([
+                'data' => $data,
+                'total' => $paginator->total(),
+                'current_page' => $paginator->currentPage(),
+                'last_page' => $paginator->lastPage(),
+                'per_page' => $paginator->perPage(),
+            ]);
+        }
+
+        $requirements = $query->get();
 
         $data = $requirements->map(function ($req) {
             $missingCount = $this->statusService->missingDocumentsCount($req);
@@ -39,7 +115,30 @@ class RequirementController extends Controller
             ]);
         });
 
-        return response()->json($data);
+        return response()->json($data)->header('X-Total-Count', (string) $data->count());
+    }
+
+    private function parseDateFilter(?string $date, ?string &$error): ?\Carbon\Carbon
+    {
+        $error = null;
+        if ($date === null || trim($date) === '') {
+            return null;
+        }
+
+        try {
+            $parsed = \Carbon\Carbon::parse($date);
+            if ($parsed->year < 1900 || $parsed->year > 2200) {
+                $error = 'Enter a valid date.';
+
+                return null;
+            }
+
+            return $parsed;
+        } catch (\Throwable $e) {
+            $error = 'Enter a valid date.';
+
+            return null;
+        }
     }
 
     public function store(Request $request): JsonResponse

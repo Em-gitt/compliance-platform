@@ -7,6 +7,7 @@ import AssistantPage from './pages/AssistantPage'
 import AuditLogPage from './pages/AuditLogPage'
 import DashboardPage from './pages/DashboardPage'
 import DocumentDetailPage from './pages/DocumentDetailPage'
+import DocumentsListPage from './pages/DocumentsListPage'
 import DocumentUploadPage from './pages/DocumentUploadPage'
 import ForbiddenPage from './pages/ForbiddenPage'
 import HomePage from './pages/HomePage'
@@ -36,6 +37,7 @@ export default function App() {
             <Route path="/documents/new" element={<DocumentUploadPage />} />
           </Route>
           <Route element={<ProtectedRoute ability="view-documents" />}>
+            <Route path="/documents" element={<DocumentsListPage />} />
             <Route path="/documents/:id" element={<DocumentDetailPage />} />
           </Route>
           <Route element={<ProtectedRoute ability="manage-requirements" />}>

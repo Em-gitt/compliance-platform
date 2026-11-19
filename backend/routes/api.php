@@ -43,6 +43,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/alerts/read-all', [AlertController::class, 'markAllAsRead']);
 
     Route::get('/requirements', [RequirementController::class, 'index']);
+    Route::get('/compliance-requirements', [RequirementController::class, 'index']);
     Route::post('/requirements', [RequirementController::class, 'store']);
     Route::get('/requirements/{requirement}', [RequirementController::class, 'show']);
     Route::patch('/requirements/{requirement}', [RequirementController::class, 'update']);

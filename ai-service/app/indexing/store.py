@@ -22,6 +22,8 @@ class RetrievedChunk:
     page_end: int | None
     section: str | None
     similarity: float
+    document_name: str | None = None
+    version_label: str | None = None
 
 
 def vector_literal(vector: list[float]) -> str:
@@ -112,7 +114,7 @@ def set_current_version(conn: psycopg.Connection, document_id: int, version_id: 
 
 
 def find_similar_chunks(
-    conn: psycopg.Connection,
+    conn: psycopg.Connection | None,
     *,
     organization_id: int,
     allowed_document_ids: list[int],
@@ -121,17 +123,24 @@ def find_similar_chunks(
     ef_search: int = 40,
 ) -> list[RetrievedChunk]:
     """Reference retrieval query from ADR-012 (current versions of allowed documents only)."""
+    if conn is None or not allowed_document_ids:
+        return []
+
     with conn.transaction():
         conn.execute(f"SET LOCAL hnsw.ef_search = {int(ef_search)}")
         rows = conn.execute(
             """
-            SELECT id, document_id, document_version_id, chunk_index, content, page_start, page_end, section,
-                   1 - (embedding <=> %(query)s::vector) AS similarity
-            FROM document_chunks
-            WHERE organization_id = %(organization_id)s
-              AND document_id = ANY(%(allowed)s)
-              AND is_current = true
-            ORDER BY embedding <=> %(query)s::vector
+            SELECT c.id, c.document_id, c.document_version_id, c.chunk_index, c.content, c.page_start, c.page_end, c.section,
+                   1 - (c.embedding <=> %(query)s::vector) AS similarity,
+                   COALESCE(d.name, 'Document') AS document_name,
+                   COALESCE(v.version_label, '1.0') AS version_label
+            FROM document_chunks c
+            LEFT JOIN documents d ON d.id = c.document_id
+            LEFT JOIN document_versions v ON v.id = c.document_version_id
+            WHERE c.organization_id = %(organization_id)s
+              AND c.document_id = ANY(%(allowed)s)
+              AND c.is_current = true
+            ORDER BY c.embedding <=> %(query)s::vector
             LIMIT %(limit)s
             """,
             {

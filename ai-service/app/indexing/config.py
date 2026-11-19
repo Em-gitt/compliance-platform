@@ -26,9 +26,18 @@ class EmbeddingConfig:
 
 
 @dataclass(frozen=True)
+class RetrievalConfig:
+    candidates: int
+    max_fragments_to_llm: int
+    similarity_threshold: float
+    hnsw_ef_search: int
+
+
+@dataclass(frozen=True)
 class RagConfig:
     chunking: ChunkingConfig
     embedding: EmbeddingConfig
+    retrieval: RetrievalConfig
     hnsw_ef_search: int
 
 
@@ -37,6 +46,13 @@ def _load(path: str) -> RagConfig:
     data = yaml.safe_load(Path(path).read_text(encoding="utf-8")) or {}
     chunking = data["chunking"]
     embedding = data.get("embedding") or {}
+    retrieval = data.get("retrieval") or {}
+    retrieval_cfg = RetrievalConfig(
+        candidates=int(retrieval.get("candidates", 8)),
+        max_fragments_to_llm=int(retrieval.get("max_fragments_to_llm", 4)),
+        similarity_threshold=float(retrieval.get("similarity_threshold", 0.55)),
+        hnsw_ef_search=int(retrieval.get("hnsw_ef_search", 40)),
+    )
     return RagConfig(
         chunking=ChunkingConfig(
             chunk_size_tokens=int(chunking["chunk_size_tokens"]),
@@ -49,7 +65,8 @@ def _load(path: str) -> RagConfig:
             max_retries=int(embedding.get("max_retries", 3)),
             backoff_seconds=float(embedding.get("backoff_seconds", 1.0)),
         ),
-        hnsw_ef_search=int((data.get("retrieval") or {}).get("hnsw_ef_search", 40)),
+        retrieval=retrieval_cfg,
+        hnsw_ef_search=retrieval_cfg.hnsw_ef_search,
     )
 
 

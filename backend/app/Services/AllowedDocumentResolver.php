@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Document;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 
@@ -22,10 +23,8 @@ class AllowedDocumentResolver
      */
     public function forUser(User $user): array
     {
-        return DB::table('documents')
-            ->where('documents.organization_id', $user->organization_id)
-            ->where('documents.is_archived', false)
-            ->when($user->role === 'general_employee', fn ($query) => $query->where('documents.access_level', 'all_staff'))
+        return Document::query()
+            ->visibleTo($user)
             ->whereExists(fn ($query) => $query
                 ->select(DB::raw(1))
                 ->from('document_versions')

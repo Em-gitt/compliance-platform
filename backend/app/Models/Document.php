@@ -32,4 +32,18 @@ class Document extends Model
     {
         return $this->hasMany(DocumentVersion::class);
     }
+
+    /**
+     * Scope query to documents visible to the given user (CMP-30 / FR-011 / BR-002).
+     */
+    public function scopeVisibleTo($query, User $user)
+    {
+        $userRole = is_string($user->role) ? $user->role : $user->role?->value;
+
+        return $query->where('organization_id', $user->organization_id)
+            ->where('is_archived', false)
+            ->when($userRole === 'general_employee' || $userRole === 'employee', function ($q) {
+                $q->where('access_level', 'all_staff');
+            });
+    }
 }

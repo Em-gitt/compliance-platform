@@ -27,7 +27,7 @@ class ComplianceRequirementDetailResource extends JsonResource
 
         $responsibleUserPayload = null;
         if ($this->relationLoaded('responsibleUser') && $this->responsibleUser) {
-            $responsibleUserPayload = $isGeneralEmployee
+            $responsibleUserPayload = ($isGeneralEmployee || $request->isMethod('POST'))
                 ? [
                     'id' => $this->responsibleUser->id,
                     'name' => $this->responsibleUser->name,

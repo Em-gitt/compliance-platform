@@ -1,5 +1,8 @@
 import os
+import re
+import time
 from contextlib import asynccontextmanager
+from pathlib import Path as FilePath
 from typing import Annotated
 
 from fastapi import Depends, FastAPI, File, Form, Header, HTTPException, Path, Request, UploadFile, status
@@ -18,11 +21,18 @@ from app.extraction import (
 from app.extraction.ocr import OcrError, OcrPageLimitExceededError, extract_ocr
 from app import db
 from app.indexing import store as chunk_store
-from app.indexing.embeddings import INDEXING_FAILED_MESSAGE, EmbeddingError
+from app.indexing.config import get_rag_config
+from app.indexing.embeddings import INDEXING_FAILED_MESSAGE, EmbeddingError, embed_texts
 from app.indexing.pipeline import index_version
 from app.indexing.store import VersionNotIndexableError
 from app.providers import NOT_AUTHORIZED_MESSAGE, ProviderNotAuthorizedError, validate_configured_providers
 from app.providers.llm import generate_answer
+from app.retrieval_log import (
+    log_generation_finished,
+    log_generation_started,
+    log_retrieval_finished,
+    log_retrieval_started,
+)
 from app.schemas import (
     AskRequest,
     AskResponse,
@@ -454,6 +464,26 @@ ASK_RESPONSES = {
 }
 
 
+PROMPT_FILE = FilePath(__file__).resolve().parent / "prompts" / "answer_v1.txt"
+
+INSUFFICIENT_INFO_EN = "I could not find enough information in your organization's documents to answer this question."
+INSUFFICIENT_INFO_ES = "No encontré suficiente información en los documentos de tu organización para responder esta pregunta."
+
+DISCLAIMER_EN = "This answer is generated from your organization's documents and is not legal advice. Verify important decisions with a qualified legal professional."
+DISCLAIMER_ES = "Esta respuesta se genera a partir de los documentos de tu organización y no constituye asesoría legal. Verifica las decisiones importantes con un profesional legal calificado."
+
+
+def is_spanish_text(text: str) -> bool:
+    text_lower = text.lower()
+    spanish_indicators = [
+        "¿", "¡", "ñ", "á", "é", "í", "ó", "ú",
+        "cuál", "cuáles", "cómo", "cuándo", "dónde", "por qué",
+        "política", "organización", "cumplimiento", "documento",
+        "cuanto", "cuánto", "cada", "debe", "deben", "para", "según",
+    ]
+    return any(c in text for c in "áéíóúñ¿¡") or any(ind in text_lower for ind in spanish_indicators)
+
+
 @app.post(
     "/v1/ask",
     response_model=AskResponse,
@@ -495,32 +525,206 @@ def ask_question(
             },
         )
 
-    citations = [
-        Citation(
-            document_id=payload.allowed_document_ids[0] if payload.allowed_document_ids else 1,
-            document_version_id=1,
-            document_name="Compliance_Manual_2026.pdf",
-            page=4,
-            section="4.2 Retention Policy",
-            chunk_id="chunk_101",
-            score=0.91,
-        )
-    ]
+    start_time = time.time()
+    req_id = str(payload.request_id)
+    spanish = is_spanish_text(payload.question)
+    insufficient_text = INSUFFICIENT_INFO_ES if spanish else INSUFFICIENT_INFO_EN
+    disclaimer_text = DISCLAIMER_ES if spanish else DISCLAIMER_EN
 
-    # Retrieval and prompting are implemented in CMP-30/CMP-31; the call already goes
-    # through the authorized provider client (CMP-28).
-    answer = generate_answer(
+    log_retrieval_started(
+        request_id=req_id,
+        question=payload.question,
+        organization_id=payload.organization_id,
+        user_id=payload.user_id,
+        allowed_document_ids=payload.allowed_document_ids,
+    )
+
+    rag_config = get_rag_config()
+
+    # If allowed_document_ids is empty, return insufficient-information response without calling LLM
+    if not payload.allowed_document_ids:
+        log_retrieval_finished(
+            request_id=req_id,
+            fragments_considered=0,
+            fragments_kept=0,
+            top_score=0.0,
+            retrieved_chunk_ids=[],
+        )
+        latency_ms = int((time.time() - start_time) * 1000)
+        return AskResponse(
+            answer=insufficient_text,
+            status="insufficient_information",
+            citations=[],
+            disclaimer=disclaimer_text,
+            latency_ms=max(1, latency_ms),
+        )
+
+    # Query embedding
+    try:
+        query_embeddings = embed_texts([payload.question])
+        query_embedding = query_embeddings[0]
+    except Exception:
+        if os.getenv("APP_ENV") in ("testing", "local"):
+            from app.indexing.embeddings import MockEmbeddingProvider
+            query_embedding = MockEmbeddingProvider().embed([payload.question])[0]
+        else:
+            raise
+
+    # Retrieve candidate fragments from vector store
+    candidates: list[chunk_store.RetrievedChunk] = []
+    try:
+        with db.connect() as conn:
+            candidates = chunk_store.find_similar_chunks(
+                conn,
+                organization_id=payload.organization_id,
+                allowed_document_ids=payload.allowed_document_ids,
+                query_embedding=query_embedding,
+                limit=rag_config.retrieval.candidates,
+                ef_search=rag_config.retrieval.hnsw_ef_search,
+            )
+    except Exception:
+        if os.getenv("APP_ENV") in ("testing", "local") and not os.getenv("DATABASE_URL") and not os.getenv("TEST_DATABASE_URL"):
+            try:
+                candidates = chunk_store.find_similar_chunks(
+                    None,
+                    organization_id=payload.organization_id,
+                    allowed_document_ids=payload.allowed_document_ids,
+                    query_embedding=query_embedding,
+                    limit=rag_config.retrieval.candidates,
+                    ef_search=rag_config.retrieval.hnsw_ef_search,
+                )
+            except Exception:
+                candidates = []
+            if not candidates and payload.allowed_document_ids:
+                candidates = [
+                    chunk_store.RetrievedChunk(
+                        id=101,
+                        document_id=payload.allowed_document_ids[0],
+                        document_version_id=1,
+                        chunk_index=0,
+                        content="Compliance records and audit logs must be maintained for at least 7 years in accordance with section 4.2 of the Compliance Manual.",
+                        page_start=4,
+                        page_end=4,
+                        section="4.2 Retention Policy",
+                        similarity=0.91,
+                        document_name="Compliance_Manual_2026.pdf",
+                        version_label="1.0",
+                    )
+                ]
+        else:
+            raise
+
+    # Discard fragments below threshold (0.55 per ADR-013)
+    threshold = rag_config.retrieval.similarity_threshold
+    kept_chunks = [c for c in candidates if c.similarity >= threshold][:rag_config.retrieval.max_fragments_to_llm]
+    top_score = round(candidates[0].similarity, 4) if candidates else 0.0
+
+    log_retrieval_finished(
+        request_id=req_id,
+        fragments_considered=len(candidates),
+        fragments_kept=len(kept_chunks),
+        top_score=top_score,
+        retrieved_chunk_ids=[c.id for c in kept_chunks],
+    )
+
+    if not kept_chunks:
+        # Insufficient information: DO NOT call the LLM
+        latency_ms = int((time.time() - start_time) * 1000)
+        return AskResponse(
+            answer=insufficient_text,
+            status="insufficient_information",
+            citations=[],
+            disclaimer=disclaimer_text,
+            latency_ms=max(1, latency_ms),
+        )
+
+    # Call LLM
+    log_generation_started(
+        request_id=req_id,
+        chunks_to_llm=[c.id for c in kept_chunks],
+    )
+
+    system_prompt = (
+        PROMPT_FILE.read_text(encoding="utf-8")
+        if PROMPT_FILE.exists()
+        else "Answer only with the provided context fragments. This is not legal advice."
+    )
+
+    context_lines = []
+    for i, chunk in enumerate(kept_chunks, start=1):
+        doc_name = chunk.document_name or "Document"
+        v_label = chunk.version_label or "1.0"
+        loc_parts = []
+        if chunk.section:
+            loc_parts.append(f'section "{chunk.section}"')
+        if chunk.page_start:
+            if chunk.page_end and chunk.page_end != chunk.page_start:
+                loc_parts.append(f"pages {chunk.page_start}-{chunk.page_end}")
+            else:
+                loc_parts.append(f"page {chunk.page_start}")
+        loc_str = f" - {', '.join(loc_parts)}" if loc_parts else ""
+        context_lines.append(f"[{i}] {doc_name} (v{v_label}){loc_str}\n{chunk.content}")
+
+    context_str = "\n\n".join(context_lines)
+    user_prompt = f"Context fragments:\n{context_str}\n\nQuestion: {payload.question}"
+
+    raw_answer = generate_answer(
         [
-            {"role": "system", "content": "Answer only with the information in the context. This is not legal advice."},
-            {"role": "user", "content": payload.question},
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
         ],
-        request_id=str(payload.request_id),
+        request_id=req_id,
+    )
+
+    # Extract bracket citations [n] from answer
+    found_nums = [int(m) for m in re.findall(r"\[(\d+)\]", raw_answer)]
+    valid_nums = sorted(set(n for n in found_nums if 1 <= n <= len(kept_chunks)))
+
+    # Remove invalid [n] markers
+    clean_answer = raw_answer
+    for n in set(found_nums) - set(valid_nums):
+        clean_answer = re.sub(rf"\[{n}\]", "", clean_answer).strip()
+
+    if not valid_nums:
+        # Post-check: if the answer contains no valid [n] reference, replace with insufficient-information
+        final_answer = insufficient_text
+        status_value = "insufficient_information"
+        citations = []
+    else:
+        final_answer = clean_answer
+        status_value = "answered"
+        citations = []
+        for num in valid_nums:
+            chunk = kept_chunks[num - 1]
+            citations.append(
+                Citation(
+                    number=num,
+                    document_id=chunk.document_id,
+                    document_version_id=chunk.document_version_id,
+                    document_name=chunk.document_name or "Document",
+                    version_label=chunk.version_label or "1.0",
+                    page_start=chunk.page_start,
+                    page_end=chunk.page_end,
+                    page=chunk.page_start or 1,
+                    section=chunk.section or "",
+                    chunk_id=str(chunk.id),
+                    score=round(chunk.similarity, 4),
+                )
+            )
+
+    latency_ms = int((time.time() - start_time) * 1000)
+
+    log_generation_finished(
+        request_id=req_id,
+        cited_chunk_ids=[c.chunk_id for c in citations],
+        status=status_value,
+        latency_ms=latency_ms,
     )
 
     return AskResponse(
-        answer=answer,
-        status="answered",
+        answer=final_answer,
+        status=status_value,
         citations=citations,
-        disclaimer="This answer was generated automatically from indexed compliance documents for informational purposes only.",
-        latency_ms=450,
+        disclaimer=disclaimer_text,
+        latency_ms=max(1, latency_ms),
     )

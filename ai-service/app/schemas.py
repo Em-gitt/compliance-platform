@@ -31,11 +31,15 @@ class SetCurrentResponse(BaseModel):
 
 
 class Citation(BaseModel):
+    number: int = Field(default=1, description="Sequential citation reference index [n]", examples=[1])
     document_id: int = Field(..., description="ID of the referenced document", examples=[1])
     document_version_id: int = Field(..., description="ID of the referenced document version", examples=[1])
     document_name: str = Field(..., description="Name of the document", examples=["Security_Policy_2026.pdf"])
-    page: int = Field(..., description="Page number where snippet was found", examples=[4])
-    section: str = Field(..., description="Section title or identifier", examples=["4.2 Data Retention Schedule"])
+    version_label: str = Field(default="1.0", description="Version label of the document", examples=["1.0"])
+    page_start: int | None = Field(default=None, description="Starting page of the excerpt", examples=[4])
+    page_end: int | None = Field(default=None, description="Ending page of the excerpt", examples=[5])
+    page: int = Field(default=1, description="Page number where snippet was found", examples=[4])
+    section: str = Field(default="", description="Section title or identifier", examples=["4.2 Data Retention Schedule"])
     chunk_id: str = Field(..., description="Chunk identifier", examples=["chunk_101"])
     score: float = Field(..., description="Relevance similarity score", examples=[0.89])
 

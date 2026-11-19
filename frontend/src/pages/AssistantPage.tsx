@@ -33,7 +33,27 @@ function LoadingBubble() {
   )
 }
 
-function citationLabel(citation: Citation): string {
+export function citationLabel(citation: Citation): string {
+  const version = citation.version_label
+    ? ` (${citation.version_label.startsWith('v') ? citation.version_label : 'v' + citation.version_label})`
+    : ''
+  const base = `${citation.document_name}${version}`
+
+  if (citation.page_start != null || (citation.page != null && citation.version_label)) {
+    const start = citation.page_start ?? citation.page
+    const end = citation.page_end
+    const pageStr = end != null && end !== start ? `pages ${start}-${end}` : `page ${start}`
+    return `${base} - ${pageStr}`
+  }
+
+  if (citation.section && citation.version_label) {
+    return `${base} - section "${citation.section}"`
+  }
+
+  if (citation.version_label) {
+    return base
+  }
+
   const parts = [citation.document_name]
   if (citation.page) parts.push(`p. ${citation.page}`)
   if (citation.section) parts.push(citation.section)

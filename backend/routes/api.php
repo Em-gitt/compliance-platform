@@ -24,7 +24,14 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::post('/documents', [DocumentController::class, 'store']);
     Route::get('/documents/{document}', [DocumentController::class, 'show']);
+    Route::get('/documents/{document}/versions', [DocumentController::class, 'versions']);
     Route::post('/documents/{document}/versions', [DocumentController::class, 'storeVersion']);
+    Route::match(['put', 'patch', 'delete'], '/documents/{document}/versions/{version?}', function () {
+        return response()->json(['message' => 'Document versions cannot be modified or deleted.'], 403);
+    });
+    Route::delete('/documents/{document}', function () {
+        return response()->json(['message' => 'Document versions cannot be modified or deleted.'], 403);
+    });
     Route::get('/documents/{id}/versions/{versionId}/download', [DocumentController::class, 'download']);
 
     Route::get('/alerts', [AlertController::class, 'index']);

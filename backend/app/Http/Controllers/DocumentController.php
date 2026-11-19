@@ -43,7 +43,7 @@ class DocumentController extends Controller
         $storedStoragePath = null;
 
         try {
-            $result = DB::transaction(function () use ($user, $file, $validated, $sha256, $detectedMime, &$fileStored, &$storedStoragePath) {
+            $result = DB::transaction(function () use ($request, $user, $file, $validated, $sha256, $detectedMime, &$fileStored, &$storedStoragePath) {
                 // 1. Create the document record scoped to user's organization
                 $document = Document::create([
                     'organization_id' => $user->organization_id,
@@ -78,6 +78,21 @@ class DocumentController extends Controller
                     'uploaded_by' => $user->id,
                     'uploaded_at' => now(),
                     'queued_at' => now(),
+                ]);
+
+                AuditLog::query()->create([
+                    'user_id' => $user->id,
+                    'category' => 'functional',
+                    'action' => 'document_version.created',
+                    'resource_type' => 'document_version',
+                    'resource_id' => $version->id,
+                    'ip_address' => $request->ip(),
+                    'user_agent' => $request->userAgent(),
+                    'metadata' => [
+                        'document_id' => $document->id,
+                        'version_label' => $version->version_label,
+                    ],
+                    'created_at' => now(),
                 ]);
 
                 return [$document, $version];
@@ -153,7 +168,7 @@ class DocumentController extends Controller
         $storedStoragePath = null;
 
         try {
-            $version = DB::transaction(function () use ($user, $file, $validated, $document, $sha256, $detectedMime, &$fileStored, &$storedStoragePath) {
+            $version = DB::transaction(function () use ($request, $user, $file, $validated, $document, $sha256, $detectedMime, &$fileStored, &$storedStoragePath) {
                 $uuid = (string) Str::uuid();
                 $storagePath = "documents/{$document->organization_id}/{$document->id}/{$uuid}.bin";
                 $storedStoragePath = $storagePath;
@@ -162,12 +177,7 @@ class DocumentController extends Controller
                 $this->encryptionService->encryptFile($file->getRealPath(), $storagePath);
                 $fileStored = true;
 
-                // 2. Clear current status from existing current version
-                DocumentVersion::where('document_id', $document->id)
-                    ->where('is_current', true)
-                    ->update(['is_current' => false]);
-
-                // 3. Create new document version
+                // 2. Create new document version with is_current = false per CMP-23
                 $newVersion = DocumentVersion::create([
                     'document_id' => $document->id,
                     'version_label' => $validated['version'],
@@ -178,10 +188,25 @@ class DocumentController extends Controller
                     'sha256' => $sha256,
                     'expiration_date' => $validated['expiration_date'] ?? null,
                     'status' => 'queued',
-                    'is_current' => true,
+                    'is_current' => false,
                     'uploaded_by' => $user->id,
                     'uploaded_at' => now(),
                     'queued_at' => now(),
+                ]);
+
+                AuditLog::query()->create([
+                    'user_id' => $user->id,
+                    'category' => 'functional',
+                    'action' => 'document_version.created',
+                    'resource_type' => 'document_version',
+                    'resource_id' => $newVersion->id,
+                    'ip_address' => $request->ip(),
+                    'user_agent' => $request->userAgent(),
+                    'metadata' => [
+                        'document_id' => $document->id,
+                        'version_label' => $newVersion->version_label,
+                    ],
+                    'created_at' => now(),
                 ]);
 
                 return $newVersion;
@@ -217,6 +242,7 @@ class DocumentController extends Controller
                     'document_id' => $document->id,
                     'version_label' => $version->version_label,
                     'status' => $version->refresh()->status,
+                    'is_current' => $version->is_current,
                     'uploaded_at' => $version->uploaded_at,
                 ],
             ], 201);
@@ -298,6 +324,36 @@ class DocumentController extends Controller
     }
 
     /**
+     * List all versions for a document.
+     */
+    public function versions(Request $request, Document $document): JsonResponse
+    {
+        $this->authorize('view', $document);
+
+        $versions = $document->versions()
+            ->with('uploader:id,name,email')
+            ->orderBy('id', 'desc')
+            ->get()
+            ->map(function ($v) use ($document) {
+                return [
+                    'id' => $v->id,
+                    'version' => $v->version_label,
+                    'version_label' => $v->version_label,
+                    'uploaded_by' => $v->uploader?->name ?? 'Unknown',
+                    'upload_date' => $v->uploaded_at ? $v->uploaded_at->format('d/m/Y H:i') : null,
+                    'uploaded_at' => $v->uploaded_at?->toISOString(),
+                    'status' => $v->status,
+                    'expiration_date' => $v->expiration_date ? $v->expiration_date->format('d/m/Y') : 'No expiration',
+                    'is_current' => (bool) $v->is_current,
+                    'download_url' => "/api/documents/{$document->id}/versions/{$v->id}/download",
+                    'failure_reason' => $v->failure_reason,
+                ];
+            });
+
+        return response()->json($versions);
+    }
+
+    /**
      * Display the specified document metadata.
      */
     public function show(Request $request, Document $document): JsonResponse
@@ -322,6 +378,26 @@ class DocumentController extends Controller
 
         $uploaderName = $currentVersion?->uploader?->name ?? 'Unknown';
 
+        $versions = $document->versions()
+            ->with('uploader:id,name,email')
+            ->orderBy('id', 'desc')
+            ->get()
+            ->map(function ($v) use ($document) {
+                return [
+                    'id' => $v->id,
+                    'version' => $v->version_label,
+                    'version_label' => $v->version_label,
+                    'uploaded_by' => $v->uploader?->name ?? 'Unknown',
+                    'upload_date' => $v->uploaded_at ? $v->uploaded_at->format('d/m/Y H:i') : null,
+                    'uploaded_at' => $v->uploaded_at?->toISOString(),
+                    'status' => $v->status,
+                    'expiration_date' => $v->expiration_date ? $v->expiration_date->format('d/m/Y') : 'No expiration',
+                    'is_current' => (bool) $v->is_current,
+                    'download_url' => "/api/documents/{$document->id}/versions/{$v->id}/download",
+                    'failure_reason' => $v->failure_reason,
+                ];
+            });
+
         return response()->json([
             'id' => $document->id,
             'name' => $document->name,
@@ -338,6 +414,7 @@ class DocumentController extends Controller
             'uploaded_by' => $uploaderName,
             'processing_status' => $currentVersion?->status ?? 'queued',
             'status' => $currentVersion?->status ?? 'queued',
+            'versions' => $versions,
             'document' => [
                 'id' => $document->id,
                 'name' => $document->name,
@@ -350,6 +427,7 @@ class DocumentController extends Controller
                 'uploaded_by' => $uploaderName,
                 'upload_date' => $uploadedAtFormatted,
                 'processing_status' => $currentVersion?->status ?? 'queued',
+                'versions' => $versions,
             ],
         ]);
     }

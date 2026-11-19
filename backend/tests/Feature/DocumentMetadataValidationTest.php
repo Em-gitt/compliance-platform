@@ -4,6 +4,7 @@ use App\Models\Document;
 use App\Models\DocumentVersion;
 use App\Models\Organization;
 use App\Models\User;
+use App\Services\DocumentVersionService;
 use Database\Seeders\CatalogSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -267,6 +268,14 @@ it('accepts a new unique version for an existing document', function (): void {
     $v1 = $versions->where('version_label', '1.0')->first();
     $v2 = $versions->where('version_label', '2.0')->first();
 
+    // In CMP-23, v1 remains current while v2 is queued
+    expect($v1->is_current)->toBeTrue();
+    expect($v2->is_current)->toBeFalse();
+
+    // After successful processing, v2 becomes current
+    app(DocumentVersionService::class)->makeCurrent($v2);
+    $v1->refresh();
+    $v2->refresh();
     expect($v1->is_current)->toBeFalse();
     expect($v2->is_current)->toBeTrue();
 });

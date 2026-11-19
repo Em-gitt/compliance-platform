@@ -172,4 +172,19 @@ if [[ -n "${HEALTHCHECK_URL}" ]]; then
     curl -fsS --retry 3 "${HEALTHCHECK_URL}" >/dev/null 2>&1 || true
 fi
 
+# 7. 30-day retention pruning policy (CMP-41)
+RETENTION_DAYS="${BACKUP_RETENTION_DAYS:-30}"
+echo "Enforcing ${RETENTION_DAYS}-day backup retention policy..."
+if [[ -n "${BACKUP_REMOTE}" ]]; then
+    if command -v rclone >/dev/null 2>&1; then
+        rclone delete --min-age "${RETENTION_DAYS}d" "${BACKUP_REMOTE}/db/" 2>/dev/null || true
+        rclone delete --min-age "${RETENTION_DAYS}d" "${BACKUP_REMOTE}/documents/" 2>/dev/null || true
+    elif [[ -d "${BACKUP_REMOTE}" ]]; then
+        find "${BACKUP_REMOTE}/db" -type f -name "compliance_*.dump.gpg" -mtime +"${RETENTION_DAYS}" -delete 2>/dev/null || true
+        find "${BACKUP_REMOTE}/documents" -type f -name "documents_*.tar.gz.gpg" -mtime +"${RETENTION_DAYS}" -delete 2>/dev/null || true
+    fi
+fi
+find "${BACKUP_DIR}" -type f -name "compliance_*.dump.gpg" -mtime +"${RETENTION_DAYS}" -delete 2>/dev/null || true
+find "${BACKUP_DIR}" -type f -name "documents_*.tar.gz.gpg" -mtime +"${RETENTION_DAYS}" -delete 2>/dev/null || true
+
 echo "Backup completed successfully: ${ENCRYPTED_FILENAME} (${FILE_SIZE} bytes)."

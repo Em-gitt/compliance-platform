@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Events\OrganizationSaved;
 use App\Models\Concerns\Auditable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -11,6 +12,15 @@ class Organization extends Model
     use Auditable;
 
     protected $guarded = [];
+
+    /**
+     * Any create or update re-evaluates which requirements apply (FR-007, CMP-17).
+     *
+     * @var array<string, class-string>
+     */
+    protected $dispatchesEvents = [
+        'saved' => OrganizationSaved::class,
+    ];
 
     protected function casts(): array
     {

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AlertController;
+use App\Http\Controllers\ApplicabilityCriteriaController;
 use App\Http\Controllers\AssistantController;
 use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\AuthController;
@@ -30,7 +31,12 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/catalogs/document-categories', [CatalogController::class, 'documentCategories']);
     Route::get('/users/options', UserOptionsController::class);
+    Route::get('/compliance-requirements', [ComplianceRequirementController::class, 'index']);
     Route::post('/compliance-requirements', [ComplianceRequirementController::class, 'store']);
+    Route::post('/compliance-requirements/criteria/preview', [ApplicabilityCriteriaController::class, 'preview']);
+    Route::put('/compliance-requirements/{complianceRequirement}/criteria', [ApplicabilityCriteriaController::class, 'update'])
+        ->whereNumber('complianceRequirement')
+        ->missing(fn () => response()->json(['message' => RequirementMessages::NOT_FOUND], 404));
     Route::get('/compliance-requirements/{complianceRequirement}', [ComplianceRequirementController::class, 'show'])
         ->whereNumber('complianceRequirement')
         ->missing(fn () => response()->json(['message' => RequirementMessages::NOT_FOUND], 404));
@@ -63,7 +69,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/alerts/read-all', [AlertController::class, 'markAllAsRead']);
 
     Route::get('/requirements', [RequirementController::class, 'index']);
-    Route::get('/compliance-requirements', [RequirementController::class, 'index']);
     Route::post('/requirements', [RequirementController::class, 'store']);
     Route::get('/requirements/{requirement}', [RequirementController::class, 'show']);
     Route::patch('/requirements/{requirement}', [RequirementController::class, 'update']);

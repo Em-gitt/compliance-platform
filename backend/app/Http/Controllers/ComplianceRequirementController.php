@@ -5,10 +5,13 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreComplianceRequirementRequest;
 use App\Http\Requests\UpdateRequirementStatusRequest;
 use App\Http\Resources\ComplianceRequirementDetailResource;
+use App\Http\Resources\ComplianceRequirementListResource;
 use App\Models\AuditLog;
 use App\Models\ComplianceRequirement;
 use App\Support\RequirementMessages;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
@@ -102,6 +105,90 @@ class ComplianceRequirementController extends Controller
         return (new ComplianceRequirementDetailResource($requirement->load(['responsibleUser', 'requiredDocuments'])))
             ->additional(['message' => RequirementMessages::statusUpdated($to)])
             ->response();
+    }
+
+    /**
+     * GET /api/compliance-requirements: requirements of the user's organization that apply to it.
+     * Requirements with applies = false stay stored but are hidden unless include_not_applicable=1 (ADR-021).
+     */
+    public function index(Request $request): AnonymousResourceCollection|JsonResponse
+    {
+        // Date filter validation
+        $error1 = null;
+        $deadlineFrom = $this->parseDateFilter($request->query('deadline_from'), $error1);
+        if ($error1) {
+            return response()->json(['message' => $error1], 422);
+        }
+
+        $error2 = null;
+        $deadlineTo = $this->parseDateFilter($request->query('deadline_to'), $error2);
+        if ($error2) {
+            return response()->json(['message' => $error2], 422);
+        }
+
+        if ($deadlineFrom && $deadlineTo && $deadlineFrom->gt($deadlineTo)) {
+            return response()->json([
+                'message' => "The 'from' date must be before or equal to the 'to' date.",
+            ], 422);
+        }
+
+        $query = ComplianceRequirement::query()
+            ->where('organization_id', $request->user()->organization_id)
+            ->unless($request->boolean('include_not_applicable'), fn ($query) => $query->where('applies', true));
+
+        if ($request->filled('name')) {
+            $name = (string) $request->query('name');
+            $isPgsql = DB::connection()->getDriverName() === 'pgsql';
+            if ($isPgsql) {
+                $query->whereRaw('unaccent(name) ILIKE unaccent(?)', ["%{$name}%"]);
+            } else {
+                $query->whereRaw('lower(unaccent(name)) LIKE lower(unaccent(?))', ["%{$name}%"]);
+            }
+        }
+
+        if ($request->filled('regulation')) {
+            $reg = (string) $request->query('regulation');
+            $query->where('regulation', 'like', "%{$reg}%");
+        }
+
+        if ($request->filled('status')) {
+            $statuses = (array) $request->query('status');
+            $query->whereIn('status', $statuses);
+        }
+
+        if ($deadlineFrom) {
+            $query->where('deadline', '>=', $deadlineFrom->toDateString());
+        }
+        if ($deadlineTo) {
+            $query->where('deadline', '<=', $deadlineTo->toDateString());
+        }
+
+        $requirements = $query->orderBy('deadline')->orderBy('id')->get();
+
+        return ComplianceRequirementListResource::collection($requirements);
+    }
+
+    private function parseDateFilter(?string $date, ?string &$error): ?\Carbon\Carbon
+    {
+        $error = null;
+        if ($date === null || trim($date) === '') {
+            return null;
+        }
+
+        try {
+            $parsed = \Carbon\Carbon::parse($date);
+            if ($parsed->year < 1900 || $parsed->year > 2200) {
+                $error = 'Enter a valid date.';
+
+                return null;
+            }
+
+            return $parsed;
+        } catch (\Throwable $e) {
+            $error = 'Enter a valid date.';
+
+            return null;
+        }
     }
 
     /**

@@ -8,7 +8,7 @@ import Toast from '../components/Toast'
 import { isoToDisplayDate } from '../features/requirements/dates'
 import { REQUIREMENT_LABELS as L } from '../features/requirements/messages'
 import StatusChanger from '../features/requirements/StatusChanger'
-import { useCurrentUser } from '../lib/auth'
+import { canCreateRequirements, useCurrentUser } from '../lib/auth'
 
 interface DocumentItem {
   id: number
@@ -205,6 +205,14 @@ export default function RequirementDetailPage() {
                   <StatusBadge status={requirement.status} />
                   {user?.role === 'compliance_staff' && (
                     <StatusChanger requirement={requirement} />
+                  )}
+                  {canCreateRequirements(user?.role) && (
+                    <Link
+                      to={`/requirements/${requirement.id}/criteria`}
+                      className="rounded-md border border-slate-300 px-3 py-1.5 text-sm font-medium text-blue-700 hover:bg-slate-50 hover:underline"
+                    >
+                      Applicability criteria
+                    </Link>
                   )}
                 </div>
               </div>

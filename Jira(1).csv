@@ -1,0 +1,733 @@
+﻿Resumen,Clave de incidencia,ID de la incidencia,Tipo de Incidencia,Estado,Clave del proyecto,Nombre del proyecto,Tipo de proyecto,Responsable del proyecto,ID del responsable del proyecto,Descripción del proyecto,Prioridad,Resolución,Persona asignada,ID de la persona asignada,Informador,ID del informador,Creador,ID del creador,Creada,Actualizada,Vista por Última Vez,Resuelta,Fecha de vencimiento,Votos,Etiquetas,Etiquetas,Etiquetas,Etiquetas,Descripción,Entorno,Interesados,ID de los interesados,Estimación original,Trabajo restante estimado,Tiempo Trabajado,Relación de trabajo,Σ Estimación original,Σ Trabajo restante estimado,Σ Tiempo empleado,Nivel de Seguridad,Campo personalizado (Clasificación),Campo personalizado (Color de la incidencia),Campo personalizado (Fecha de inicio),Sprint,Campo personalizado (Story point estimate),Campo personalizado (Team),Campo personalizado (Vulnerabilidad),Campo personalizado (development),Categoría de estado cambiada,Categoría del estado
+[CMP-23] Implement document version history,KAN-121,10214,Tarea,En curso,KAN,Mi equipo de software,software,Fernando Cisneros,712020:e0934682-6f48-45b6-ab71-cf52363af8e5,,High,,EMILIO RANGEL TORRES,712020:c7e19fd6-ed9a-41c2-a2d3-9b8c6cc6e284,Fernando Cisneros,712020:e0934682-6f48-45b6-ab71-cf52363af8e5,Fernando Cisneros,712020:e0934682-6f48-45b6-ab71-cf52363af8e5,19/oct/26 8:33 AM,11/nov/26 8:54 AM,18/nov/26 8:02 AM,,19/nov/26 12:00 AM,0,Document-Management,Functional,Must,SRS-V2,"*Requirement type:* Functional
+*Related requirements:* FR-005, BR-003, NFR-013
+*MoSCoW:* Must
+*Estimated effort:* 5 SP / 10 h
+*Blocked by:* CMP-21, CMP-22
+
+h3. Goal
+Keep a complete, immutable history of document versions, where a new version becomes current only after it is processed successfully.
+
+h3. Tech stack
+* Laravel {{POST /api/documents/\{id\}/versions}} ({{StoreDocumentVersionRequest}}), {{DocumentVersionService::makeCurrent()}}.
+* React tab ""Versions"" in {{/documents/\{id\}}}.
+
+h3. Implementation details
+* New version: same validations as CMP-20/CMP-21; stored with is_current = false and status 'queued'.
+* When processing succeeds, one transaction sets the previous version is_current = false, the new one is_current = true, calls FastAPI set-current (CMP-29) and writes audit document_version.set_current.
+* If processing fails, the previous version stays current and the uploader sees the message below.
+* Versions tab table columns: Version, Uploaded by, Upload date, Status, Expiration date, Current (badge ""Current""), Download (button).
+* No DELETE route exists for documents or versions; PUT/PATCH on a version returns 403.
+* Button ""Upload new version"" visible only to roles that can upload.
+
+h3. Exact messages
+||Case||HTTP||Exact text shown||
+|New version fails processing|-|Version <new label> could not be processed. Version <current label> remains the current version.|
+|Attempt to modify or delete a version|403 / 405|Document versions cannot be modified or deleted.|
+
+h3. Acceptance criteria
+# Uploading version 2.0 keeps 1.0 as current while 2.0 is queued/processing; after success 2.0 shows the ""Current"" badge.
+# Version 1.0 remains listed and downloadable from the Versions tab.
+# A version 3.0 that fails processing leaves 2.0 as current and shows the exact message.
+# PATCH/DELETE requests on a version return the exact message; audit records exist for created and set_current versions.
+
+h3. Definition of done
+* Code merged into {{develop}} through a Pull Request titled ""CMP-23: Implement document version history"" with at least 1 approval.
+* Automated tests for this task added and passing in GitHub Actions.
+* All user-facing texts match exactly the messages written in this task.
+* Jira comment with the PR link and evidence (screenshots, logs or test output) for each acceptance criterion.",,Fernando Cisneros,712020:e0934682-6f48-45b6-ab71-cf52363af8e5,,,,,,,,,0|i0004v:,,17/nov/26 12:00 AM,Sprint 3,5.0,,,{},11/nov/26 8:54 AM,En curso
+[CMP-38] Implement security audit logging and audit-record protection,KAN-124,10217,Tarea,Por hacer,KAN,Mi equipo de software,software,Fernando Cisneros,712020:e0934682-6f48-45b6-ab71-cf52363af8e5,,High,,Leonel de la cruz flores,712020:0c4677be-2052-47d7-a898-b312fb4ab486,Fernando Cisneros,712020:e0934682-6f48-45b6-ab71-cf52363af8e5,Fernando Cisneros,712020:e0934682-6f48-45b6-ab71-cf52363af8e5,19/oct/26 8:33 AM,19/oct/26 8:33 AM,,,13/nov/26 12:00 AM,0,Must,Non-Functional,Security-Audit-Ops,SRS-V2,"*Requirement type:* Non-functional
+*Related requirements:* NFR-014, NFR-013, BR-008
+*MoSCoW:* Must
+*Estimated effort:* 5 SP / 8 h
+*Blocked by:* CMP-37, CMP-08
+
+h3. Goal
+Record security events with enough detail to investigate incidents, and make audit records impossible to change or delete.
+
+h3. Tech stack
+* Laravel listeners on auth events ({{Login}}, {{Failed}}, {{Logout}}, {{Lockout}}) + {{AuditLogger}} with category 'security'.
+* PostgreSQL trigger and privileges on {{audit_logs}}.
+* React read-only viewer {{/admin/audit-log}}.
+
+h3. Implementation details
+* Events: auth.login_succeeded, auth.login_failed (metadata: attempted email), auth.logout, auth.account_locked, access.denied, user.created, user.role_changed, user.deactivated, user.activated, document.download_denied, audit.modification_denied.
+* Every record: user_id (null for failed logins with unknown email), action, resource, IP address (real client IP via TrustProxies), user agent, timestamp.
+* Protection layer 1 (app): AuditLog model throws {{AuditLogImmutableException}} on updating/deleting; no update/delete routes.
+* Protection layer 2 (database): trigger {{prevent_audit_log_changes}} BEFORE UPDATE OR DELETE that raises an exception; and {{REVOKE UPDATE, DELETE ON audit_logs FROM compliance_app}}.
+* Viewer {{/admin/audit-log}}: filters date range, user, category, action; 50 rows per page; columns Date/time, User, Action, Resource, IP. Read-only. Access per ADR-005 (Administrator; Compliance Staff only if confirmed).
+
+h3. Exact messages
+||Case||HTTP||Exact text shown||
+|Attempt to modify/delete an audit record via API|403|Audit records cannot be modified or deleted.|
+|Direct UPDATE/DELETE in database|-|PostgreSQL error: ""audit_logs records are immutable"".|
+
+h3. Acceptance criteria
+# Pest tests assert a record with user, action, resource, IP and timestamp for: successful login, failed login, access denial and role change.
+# {{UPDATE audit_logs SET action='x' WHERE id=1}} as the app DB user fails; screenshot attached.
+# A PUT/DELETE to {{/api/audit-logs/1}} returns 403 with the exact message and creates audit.modification_denied.
+
+h3. Definition of done
+* Code merged into {{develop}} through a Pull Request titled ""CMP-38: Implement security audit logging and audit-record protection"" with at least 1 approval.
+* Automated tests for this task added and passing in GitHub Actions.
+* All user-facing texts match exactly the messages written in this task.
+* Jira comment with the PR link and evidence (screenshots, logs or test output) for each acceptance criterion.",,Fernando Cisneros,712020:e0934682-6f48-45b6-ab71-cf52363af8e5,,,,,,,,,0|i0005j:,,12/nov/26 12:00 AM,Sprint 3,5.0,,,{},19/oct/26 8:33 AM,Por hacer
+[CMP-40] Configure automated daily database backups with monitoring,KAN-125,10218,Tarea,Por hacer,KAN,Mi equipo de software,software,Fernando Cisneros,712020:e0934682-6f48-45b6-ab71-cf52363af8e5,,High,,EMILIO RANGEL TORRES,712020:c7e19fd6-ed9a-41c2-a2d3-9b8c6cc6e284,Fernando Cisneros,712020:e0934682-6f48-45b6-ab71-cf52363af8e5,Fernando Cisneros,712020:e0934682-6f48-45b6-ab71-cf52363af8e5,19/oct/26 8:33 AM,19/oct/26 8:33 AM,,,23/nov/26 12:00 AM,0,Must,Non-Functional,Security-Audit-Ops,SRS-V2,"*Requirement type:* Non-functional
+*Related requirements:* NFR-015
+*MoSCoW:* Must
+*Estimated effort:* 3 SP / 6 h
+*Blocked by:* CMP-05, CMP-06
+
+h3. Goal
+Back up the database every day automatically and detect immediately when a backup fails.
+
+h3. Tech stack
+* Docker container {{db-backup}} (postgres:16 image + cron + gnupg + rclone).
+* Off-server storage: S3-compatible bucket (e.g., Backblaze B2 or AWS S3) per ADR-030.
+* Monitoring: Healthchecks.io (free plan) or an Uptime Kuma push monitor, email alerts to the team.
+
+h3. Implementation details
+* Script {{infra/backup/backup.sh}} runs daily at 02:30 America/Mexico_City: {{pg_dump -Fc}} -> {{gpg --symmetric --cipher-algo AES256}} (if ADR-033 says encrypt) -> upload with rclone to {{backups/db/compliance_YYYYMMDD_HHMM.dump.gpg}}.
+* Also archives the {{documents_storage}} volume (already encrypted files) weekly.
+* Each run appends a line to {{/var/log/backup.log}}: start time, end time, file name, size in bytes, result OK/FAILED.
+* On success the script calls the monitoring ping URL; on any error ({{set -euo pipefail}} + trap) it calls the /fail URL.
+* Alert email subject: ""\[Compliance Platform\] Daily backup FAILED"" with the error output; also sent if no ping arrives within 26 hours.
+* Procedure documented in {{docs/operations/backups.md}}.
+
+h3. Acceptance criteria
+# The bucket shows one backup file per day for at least 3 consecutive days, each with date and time in the name; backup.log shows OK for each.
+# Forcing a failure (wrong DB password) triggers the alert email with the exact subject within 15 minutes; screenshot attached.
+# The backup file cannot be opened without the GPG passphrase (if encryption is required).
+
+h3. Definition of done
+* Code merged into {{develop}} through a Pull Request titled ""CMP-40: Configure automated daily database backups with monitoring"" with at least 1 approval.
+* Automated tests for this task added and passing in GitHub Actions.
+* All user-facing texts match exactly the messages written in this task.
+* Jira comment with the PR link and evidence (screenshots, logs or test output) for each acceptance criterion.",,Fernando Cisneros,712020:e0934682-6f48-45b6-ab71-cf52363af8e5,,,,,,,,,0|i0005q:,,20/nov/26 12:00 AM,Sprint 3,3.0,,,{},19/oct/26 8:33 AM,Por hacer
+[CMP-18] Implement missing-document detection,KAN-126,10219,Tarea,Por hacer,KAN,Mi equipo de software,software,Fernando Cisneros,712020:e0934682-6f48-45b6-ab71-cf52363af8e5,,High,,HECTOR ERNESTO TORRES CARRIZALES,712020:3cdbbd3c-cc9f-4d3d-a8a1-822fdee724b5,Fernando Cisneros,712020:e0934682-6f48-45b6-ab71-cf52363af8e5,Fernando Cisneros,712020:e0934682-6f48-45b6-ab71-cf52363af8e5,19/oct/26 8:33 AM,19/oct/26 8:33 AM,,,17/nov/26 12:00 AM,0,Functional,Must,Organization-Compliance,SRS-V2,"*Requirement type:* Functional
+*Related requirements:* FR-014
+*MoSCoW:* Must
+*Estimated effort:* 5 SP / 8 h
+*Blocked by:* CMP-15, CMP-20, CMP-04
+
+h3. Goal
+Show clearly which required documents of each compliance requirement are missing.
+
+h3. Tech stack
+* Laravel service {{RequiredDocumentStatusService}} implementing the ADR-022 rule (CMP-04).
+* React components in {{/requirements/\{id\}}} and the requirements list.
+
+h3. Implementation details
+* Rule (from ADR-022): satisfied when a linked document exists AND category matches AND its current version is 'processed' AND expiration is empty or after today.
+* Link UI: each required document row has ""Link document"" (search among documents of the same category) and ""Unlink"".
+* Row display: green badge ""Provided"" with the document name as link, or red badge ""Missing Document"". When the linked document is expired, red badge ""Missing Document"" with tooltip ""The linked document expired on <DD/MM/YYYY>."". When the linked version is still processing: gray badge ""Processing"".
+* Requirements list shows a counter: ""<n> missing documents"" in red, or ""All documents provided"" in green.
+* Status is recalculated on document processed, version changed, link/unlink, and daily at 00:05 for expirations.
+* Audit: requirement.document_linked / requirement.document_unlinked.
+
+h3. Exact messages
+||Case||HTTP||Exact text shown||
+|Linking a document with a different category|422|This document's category (<doc category>) does not match the required category (<required category>).|
+|Linking a document of another organization or not accessible|403|You do not have permission to link this document.|
+
+h3. Acceptance criteria
+# A requirement with a required document and no linked document shows ""Missing Document"".
+# Linking a processed document of the right category changes it to ""Provided"" without a page reload.
+# Pest tests cover: missing, satisfied, expired (missing with tooltip), replaced version that fails (still satisfied by previous current version), unlinked (missing again).
+
+h3. Definition of done
+* Code merged into {{develop}} through a Pull Request titled ""CMP-18: Implement missing-document detection"" with at least 1 approval.
+* Automated tests for this task added and passing in GitHub Actions.
+* All user-facing texts match exactly the messages written in this task.
+* Jira comment with the PR link and evidence (screenshots, logs or test output) for each acceptance criterion.",,Fernando Cisneros,712020:e0934682-6f48-45b6-ab71-cf52363af8e5,,,,,,,,,0|i00064:,,13/nov/26 12:00 AM,Sprint 3,5.0,,,{},19/oct/26 8:33 AM,Por hacer
+[CMP-30] Implement permission-aware retrieval,KAN-127,10220,Tarea,Por hacer,KAN,Mi equipo de software,software,Fernando Cisneros,712020:e0934682-6f48-45b6-ab71-cf52363af8e5,,High,,Fernando Cisneros,712020:e0934682-6f48-45b6-ab71-cf52363af8e5,Fernando Cisneros,712020:e0934682-6f48-45b6-ab71-cf52363af8e5,Fernando Cisneros,712020:e0934682-6f48-45b6-ab71-cf52363af8e5,19/oct/26 8:33 AM,19/oct/26 8:33 AM,,,19/nov/26 12:00 AM,0,AI-Assistant-RAG,Functional,Must,SRS-V2,"*Requirement type:* Functional
+*Related requirements:* FR-011, AIR-002, AIR-006, BR-002
+*MoSCoW:* Must
+*Estimated effort:* 8 SP / 14 h
+*Blocked by:* CMP-29, CMP-10
+
+h3. Goal
+Retrieve only fragments from documents the user is allowed to see, before any answer is generated.
+
+h3. Tech stack
+* Laravel {{DocumentPolicy}} + query scope {{Document::visibleTo($user)}} to compute allowed IDs.
+* FastAPI retrieval module with pgvector SQL query.
+* Structured JSON logs (Python logging + python-json-logger).
+
+h3. Implementation details
+* Laravel computes {{allowed_document_ids}} for the user (organization + role + access_level) and sends them in /v1/ask. FastAPI never receives a user-chosen list from React.
+* SQL pre-filter (filter inside the query, not after): {{WHERE organization_id = :org AND document_id = ANY(:allowed) AND is_current ORDER BY embedding <=> :query_embedding LIMIT :top_k}}.
+* Similarity = 1 - cosine distance; fragments below the ADR-013 threshold are discarded.
+* If allowed_document_ids is empty or no fragment passes the threshold, return the insufficient-information response (CMP-31) without calling the LLM.
+* Logs per request_id: event ""retrieval_started"", ""retrieval_finished"" (fragments_considered, fragments_kept, top_score), then ""generation_started""; timestamps prove order.
+
+h3. Acceptance criteria
+# Logs of 10 test questions show retrieval_finished before generation_started for every request.
+# Test with 2 users: a 'compliance_only' document is cited for Compliance Staff; for General Employee the same question returns the insufficient-information response and no chunk of that document appears in the logs.
+# pytest: fragments with similarity below the threshold are never passed to the LLM.
+
+h3. Definition of done
+* Code merged into {{develop}} through a Pull Request titled ""CMP-30: Implement permission-aware retrieval"" with at least 1 approval.
+* Automated tests for this task added and passing in GitHub Actions.
+* All user-facing texts match exactly the messages written in this task.
+* Jira comment with the PR link and evidence (screenshots, logs or test output) for each acceptance criterion.",,Fernando Cisneros,712020:e0934682-6f48-45b6-ab71-cf52363af8e5,,,,,,,,,0|i0006a:,,13/nov/26 12:00 AM,Sprint 3,8.0,,,{},19/oct/26 8:33 AM,Por hacer
+[CMP-19] Build compliance dashboard,KAN-128,10221,Tarea,Por hacer,KAN,Mi equipo de software,software,Fernando Cisneros,712020:e0934682-6f48-45b6-ab71-cf52363af8e5,,High,,HECTOR ERNESTO TORRES CARRIZALES,712020:3cdbbd3c-cc9f-4d3d-a8a1-822fdee724b5,Fernando Cisneros,712020:e0934682-6f48-45b6-ab71-cf52363af8e5,Fernando Cisneros,712020:e0934682-6f48-45b6-ab71-cf52363af8e5,19/oct/26 8:33 AM,19/oct/26 8:33 AM,,,20/nov/26 12:00 AM,0,Functional,Must,Organization-Compliance,SRS-V2,"*Requirement type:* Functional
+*Related requirements:* FR-008
+*MoSCoW:* Must
+*Estimated effort:* 5 SP / 12 h
+*Blocked by:* CMP-16, CMP-17, CMP-10
+
+h3. Goal
+Show the organization's compliance situation in one page: applicable requirements, deadlines, required documents and status.
+
+h3. Tech stack
+* React page {{/dashboard}} with Tailwind cards, TanStack Table and Recharts (donut chart).
+* Laravel {{GET /api/dashboard}} ({{DashboardController}}) with eager loading.
+
+h3. Implementation details
+* Summary cards: ""Applicable requirements"", ""Compliant"" (green), ""Pending"" (gray), ""At Risk"" (amber), ""Overdue"" (red), ""Missing documents"".
+* Donut chart of requirements by status.
+* Table: Name, Regulation, Deadline (DD/MM/YYYY; red text if past, amber if within 7 days), Documents (""2 of 3 provided""), Status badge, Responsible. Default order: deadline ascending. Filter chips by status. Row click opens {{/requirements/\{id\}}}.
+* Only requirements with applies = true (CMP-17).
+* One API call returns \{summary, requirements\}; target under 2 s (NFR-008) with 100 requirements.
+* Data refreshes after status changes (CMP-16) through query invalidation.
+
+h3. Exact messages
+||Case||HTTP||Exact text shown||
+|No applicable requirements (empty state)|-|No compliance requirements apply to your organization yet.|
+|API error loading the dashboard|500|The dashboard could not be loaded. Please refresh the page. (with a ""Retry"" button)|
+|User without dashboard permission|403|You do not have permission to view the compliance dashboard.|
+
+h3. Acceptance criteria
+# Administrator and Compliance Staff see all elements listed above; General Employee gets the Access denied page.
+# Script {{docs/qa/dashboard_check.sql}} counts requirements by status; its numbers equal the summary cards (screenshot of both attached).
+# Empty-state and error messages appear exactly as written.
+
+h3. Definition of done
+* Code merged into {{develop}} through a Pull Request titled ""CMP-19: Build compliance dashboard"" with at least 1 approval.
+* Automated tests for this task added and passing in GitHub Actions.
+* All user-facing texts match exactly the messages written in this task.
+* Jira comment with the PR link and evidence (screenshots, logs or test output) for each acceptance criterion.",,Fernando Cisneros,712020:e0934682-6f48-45b6-ab71-cf52363af8e5,,,,,,,,,0|i0006n:,,18/nov/26 12:00 AM,Sprint 3,5.0,,,{},19/oct/26 8:33 AM,Por hacer
+[CMP-11] Implement account lockout after 5 failed logins,KAN-129,10222,Tarea,Por hacer,KAN,Mi equipo de software,software,Fernando Cisneros,712020:e0934682-6f48-45b6-ab71-cf52363af8e5,,Medium,,Leonel de la cruz flores,712020:0c4677be-2052-47d7-a898-b312fb4ab486,Fernando Cisneros,712020:e0934682-6f48-45b6-ab71-cf52363af8e5,Fernando Cisneros,712020:e0934682-6f48-45b6-ab71-cf52363af8e5,19/oct/26 8:33 AM,19/oct/26 8:33 AM,,,17/nov/26 12:00 AM,0,Identity-Access,Non-Functional,Should,SRS-V2,"*Requirement type:* Non-functional
+*Related requirements:* NFR-006
+*MoSCoW:* Should
+*Estimated effort:* 2 SP / 4 h
+*Blocked by:* CMP-08
+
+h3. Goal
+Block brute-force password guessing by locking an account for 15 minutes after 5 consecutive failed sign-ins.
+
+h3. Tech stack
+* Laravel: columns users.failed_login_attempts and users.locked_until (CMP-06), logic inside {{AuthController@login}}.
+* React message on the login page.
+
+h3. Implementation details
+* Each failed attempt for an existing email increments failed_login_attempts; a successful login resets it to 0.
+* On the 5th consecutive failure: locked_until = now + 15 minutes, security audit auth.account_locked.
+* While locked, any attempt (even with the right password) is rejected with HTTP 423 and does not increase the counter.
+* After locked_until passes, the next correct sign-in succeeds and resets the counter.
+* Attempts with unknown emails do not reveal whether the email exists (same generic message as CMP-08 until a lock applies).
+* Times shown in America/Mexico_City, 24-hour format.
+
+h3. Exact messages
+||Case||HTTP||Exact text shown||
+|5th consecutive failed attempt|423|Your account has been locked for 15 minutes due to too many failed sign-in attempts. Try again at <HH:mm>.|
+|Any attempt during the lock|423|Your account is locked. Try again in <n> minutes.|
+
+h3. Acceptance criteria
+# After 5 wrong passwords the 5th response shows the exact lock message with the correct time.
+# During the lock the correct password is rejected with ""Your account is locked. Try again in <n> minutes."".
+# Pest test with {{Carbon::setTestNow(+16 minutes)}} confirms login works and failed_login_attempts = 0.
+# An auth.account_locked audit record exists.
+
+h3. Definition of done
+* Code merged into {{develop}} through a Pull Request titled ""CMP-11: Implement account lockout after 5 failed logins"" with at least 1 approval.
+* Automated tests for this task added and passing in GitHub Actions.
+* All user-facing texts match exactly the messages written in this task.
+* Jira comment with the PR link and evidence (screenshots, logs or test output) for each acceptance criterion.",,Fernando Cisneros,712020:e0934682-6f48-45b6-ab71-cf52363af8e5,,,,,,,,,0|i0006s:,,17/nov/26 12:00 AM,Sprint 3,2.0,,,{},19/oct/26 8:33 AM,Por hacer
+[CMP-12] Implement 30-minute inactive session timeout,KAN-130,10223,Tarea,Por hacer,KAN,Mi equipo de software,software,Fernando Cisneros,712020:e0934682-6f48-45b6-ab71-cf52363af8e5,,Medium,,Leonel de la cruz flores,712020:0c4677be-2052-47d7-a898-b312fb4ab486,Fernando Cisneros,712020:e0934682-6f48-45b6-ab71-cf52363af8e5,Fernando Cisneros,712020:e0934682-6f48-45b6-ab71-cf52363af8e5,19/oct/26 8:33 AM,19/oct/26 8:33 AM,,,18/nov/26 12:00 AM,0,Identity-Access,Non-Functional,Should,SRS-V2,"*Requirement type:* Non-functional
+*Related requirements:* NFR-007
+*MoSCoW:* Should
+*Estimated effort:* 1 SP / 2 h
+*Blocked by:* CMP-08
+
+h3. Goal
+End sessions automatically after 30 minutes without activity.
+
+h3. Tech stack
+* Laravel session config: {{SESSION_LIFETIME=30}}, {{SESSION_EXPIRE_ON_CLOSE=false}}, session driver {{database}} or {{redis}}.
+* React: react-idle-timer + modal; Axios 401 interceptor.
+
+h3. Implementation details
+* Any authenticated API request renews the 30-minute window (sliding expiration).
+* React shows a warning modal at 28 minutes of inactivity: title ""Are you still there?"", text ""Your session will expire in 2 minutes due to inactivity."", buttons ""Stay signed in"" (calls GET /api/auth/me) and ""Sign out"".
+* If the session expires, the next request returns 401 and React redirects to {{/login?reason=timeout}}.
+* Login page with reason=timeout shows a yellow banner with the message below.
+
+h3. Exact messages
+||Case||HTTP||Exact text shown||
+|Session expired after 30 minutes|401|Your session expired after 30 minutes of inactivity. Please sign in again.|
+
+h3. Acceptance criteria
+# Pest: with {{Carbon::setTestNow(+31 minutes)}} a request to a protected endpoint returns 401.
+# Playwright with fake clock: the warning modal appears at 28 minutes; ""Stay signed in"" keeps the session; doing nothing redirects to /login with the exact banner.
+
+h3. Definition of done
+* Code merged into {{develop}} through a Pull Request titled ""CMP-12: Implement 30-minute inactive session timeout"" with at least 1 approval.
+* Automated tests for this task added and passing in GitHub Actions.
+* All user-facing texts match exactly the messages written in this task.
+* Jira comment with the PR link and evidence (screenshots, logs or test output) for each acceptance criterion.",,Fernando Cisneros,712020:e0934682-6f48-45b6-ab71-cf52363af8e5,,,,,,,,,0|i00074:,,18/nov/26 12:00 AM,Sprint 3,1.0,,,{},19/oct/26 8:33 AM,Por hacer
+[CMP-31] Implement grounded answer generation and insufficient-information response,KAN-131,10224,Tarea,Por hacer,KAN,Mi equipo de software,software,Fernando Cisneros,712020:e0934682-6f48-45b6-ab71-cf52363af8e5,,High,,Fernando Cisneros,712020:e0934682-6f48-45b6-ab71-cf52363af8e5,Fernando Cisneros,712020:e0934682-6f48-45b6-ab71-cf52363af8e5,Fernando Cisneros,712020:e0934682-6f48-45b6-ab71-cf52363af8e5,19/oct/26 8:33 AM,19/oct/26 8:33 AM,,,24/nov/26 12:00 AM,0,AI-Assistant-RAG,Must,Non-Functional,SRS-V2,"*Requirement type:* Non-functional
+*Related requirements:* NFR-018, AIR-003, AIR-005, AIR-007, BR-005, BR-006, BR-007
+*MoSCoW:* Must
+*Estimated effort:* 5 SP / 10 h
+*Blocked by:* CMP-30
+
+h3. Goal
+Generate answers only from retrieved fragments, admit when there is not enough information, and always show the not-legal-advice disclaimer.
+
+h3. Tech stack
+* FastAPI service, Python 3.12, LLM from ADR-010 through ProviderClient (CMP-28).
+* Versioned prompt file {{ai-service/app/prompts/answer_v1.txt}}.
+
+h3. Implementation details
+* System prompt rules: answer only with the numbered context fragments; cite each fact with \[n\]; if the fragments do not contain the answer reply exactly with the insufficient-information text; answer in the language of the question; do not give legal advice; do not invent document names.
+* Parameters: temperature 0.1, max output 800 tokens, timeout 10 s.
+* Post-check: if the answer contains no valid \[n\] reference to a provided fragment, replace it with the insufficient-information response (status ""insufficient_information"").
+* Insufficient-information text (exact, shown to the user): ""I could not find enough information in your organization's documents to answer this question.""
+* Disclaimer text (exact, always returned in {{disclaimer}} and shown under every answer): ""This answer is generated from your organization's documents and is not legal advice. Verify important decisions with a qualified legal professional.""
+* If the question is in Spanish, both texts are returned in Spanish: ""No encontré suficiente información en los documentos de tu organización para responder esta pregunta."" and ""Esta respuesta se genera a partir de los documentos de tu organización y no constituye asesoría legal. Verifica las decisiones importantes con un profesional legal calificado.""
+
+h3. Exact messages
+||Case||HTTP||Exact text shown||
+|No fragment passes the threshold|200|I could not find enough information in your organization's documents to answer this question.|
+|LLM timeout (10 s)|504|The assistant took too long to respond. Please try again.|
+
+h3. Acceptance criteria
+# pytest with mocked LLM: the prompt sent contains only retrieved fragments.
+# With no fragment over the threshold the exact insufficient-information text is returned and the LLM is not called.
+# Every answer (answered or insufficient) includes the exact disclaimer and the UI shows it.
+# All evaluation questions without supporting documents (CMP-36) return the insufficient-information response.
+
+h3. Definition of done
+* Code merged into {{develop}} through a Pull Request titled ""CMP-31: Implement grounded answer generation and insufficient-information response"" with at least 1 approval.
+* Automated tests for this task added and passing in GitHub Actions.
+* All user-facing texts match exactly the messages written in this task.
+* Jira comment with the PR link and evidence (screenshots, logs or test output) for each acceptance criterion.",,Fernando Cisneros,712020:e0934682-6f48-45b6-ab71-cf52363af8e5,,,,,,,,,0|i00078:,,20/nov/26 12:00 AM,Sprint 3,5.0,,,{},19/oct/26 8:33 AM,Por hacer
+[CMP-47] Implement in-application alerts for deadlines and expirations,KAN-132,10225,Tarea,Por hacer,KAN,Mi equipo de software,software,Fernando Cisneros,712020:e0934682-6f48-45b6-ab71-cf52363af8e5,,Medium,,HECTOR ERNESTO TORRES CARRIZALES,712020:3cdbbd3c-cc9f-4d3d-a8a1-822fdee724b5,Fernando Cisneros,712020:e0934682-6f48-45b6-ab71-cf52363af8e5,Fernando Cisneros,712020:e0934682-6f48-45b6-ab71-cf52363af8e5,19/oct/26 8:33 AM,19/oct/26 8:33 AM,,,25/nov/26 12:00 AM,0,Functional,Organization-Compliance,Should,SRS-V2,"*Requirement type:* Functional
+*Related requirements:* FR-015
+*MoSCoW:* Should
+*Estimated effort:* 5 SP / 10 h
+*Blocked by:* CMP-04, CMP-15, CMP-21
+
+h3. Goal
+Warn the responsible user inside the application before requirement deadlines and document expirations.
+
+h3. Tech stack
+* Laravel scheduler command {{alerts:generate}} (daily 07:00 America/Mexico_City), table {{alerts}}.
+* React bell icon in the header with unread badge, dropdown and page {{/alerts}}.
+
+h3. Implementation details
+* Allowed periods from ADR-020 (proposal 30, 15, 7 and 1 days). Each requirement stores its selected periods in notification_periods (default all).
+* Command creates one alert per item and period (unique constraint prevents duplicates) for: requirement deadlines, document expiration dates (current versions), and overdue requirements (day after deadline).
+* Alert texts (exact):
+** Requirement due: ""Requirement ""<name>"" is due in <n> days (<DD/MM/YYYY>). Responsible: <user name>.""
+** Document expiring: ""Document ""<name>"" version <label> expires in <n> days (<DD/MM/YYYY>). Responsible: <user name>.""
+** Overdue: ""Requirement ""<name>"" is overdue since <DD/MM/YYYY>. Responsible: <user name>.""
+* Bell shows the unread count (max ""9+""); clicking an alert marks it read and opens the item. Button ""Mark all as read"". Empty state: ""You have no alerts.""
+* API: {{GET /api/alerts}}, {{POST /api/alerts/\{id\}/read}}, {{POST /api/alerts/read-all}}.
+
+h3. Exact messages
+||Case||HTTP||Exact text shown||
+|Notification period not allowed|422|Notification period must be one of: 30, 15, 7 or 1 days.|
+
+h3. Acceptance criteria
+# With a requirement due in 7 days, running {{php artisan alerts:generate}} creates one alert for the responsible user with the exact text; running it again creates no duplicate.
+# A document version expiring in 30 days generates the exact document alert.
+# Only the allowed periods can be saved; any other returns the exact message.
+# The responsible user sees the alert in the bell; other users do not.
+
+h3. Definition of done
+* Code merged into {{develop}} through a Pull Request titled ""CMP-47: Implement in-application alerts for deadlines and expirations"" with at least 1 approval.
+* Automated tests for this task added and passing in GitHub Actions.
+* All user-facing texts match exactly the messages written in this task.
+* Jira comment with the PR link and evidence (screenshots, logs or test output) for each acceptance criterion.",,Fernando Cisneros,712020:e0934682-6f48-45b6-ab71-cf52363af8e5,,,,,,,,,0|i0007j:,,23/nov/26 12:00 AM,Sprint 3,5.0,,,{},19/oct/26 8:33 AM,Por hacer
+[CMP-26] Implement OCR for scanned PDFs,KAN-133,10226,Tarea,Por hacer,KAN,Mi equipo de software,software,Fernando Cisneros,712020:e0934682-6f48-45b6-ab71-cf52363af8e5,,Medium,,EMILIO RANGEL TORRES,712020:c7e19fd6-ed9a-41c2-a2d3-9b8c6cc6e284,Fernando Cisneros,712020:e0934682-6f48-45b6-ab71-cf52363af8e5,Fernando Cisneros,712020:e0934682-6f48-45b6-ab71-cf52363af8e5,19/oct/26 8:33 AM,19/oct/26 8:33 AM,,,26/nov/26 12:00 AM,0,Document-Management,Functional,Should,SRS-V2,"*Requirement type:* Functional
+*Related requirements:* FR-003
+*MoSCoW:* Should
+*Estimated effort:* 5 SP / 10 h
+*Blocked by:* CMP-25
+
+h3. Goal
+Read scanned PDFs (images without selectable text) with OCR so they can also be searched and used by the AI.
+
+h3. Tech stack
+* FastAPI service, Python 3.12.
+* Tesseract OCR 5 with Spanish and English language packs ({{tesseract-ocr-spa}}, {{tesseract-ocr-eng}}) installed in the ai-service Docker image; pytesseract; pdf2image + poppler-utils.
+
+h3. Implementation details
+* Triggered when CMP-25 detects a scanned PDF (average under 20 characters per page).
+* Convert each page to an image at 300 DPI, OCR with {{lang=""spa+eng""}}, keep the page number for each segment.
+* Limit: 100 pages per scanned PDF; timeout 5 minutes per document.
+* Store {{ocr_used = true}} and average OCR confidence in the version metadata; show label ""Text obtained by OCR"" in the document detail.
+* If OCR returns no text or fails, return 422 OCR_FAILED; document gets status ""Processing Failed"" and is not indexed.
+
+h3. Exact messages
+||Case||HTTP||Exact text shown||
+|OCR failed or produced no text|-|The scanned document could not be read (OCR failed). Upload a clearer scan or a text-based PDF.|
+|Scanned PDF with more than 100 pages|-|Scanned documents can have up to 100 pages.|
+
+h3. Acceptance criteria
+# The 3 scanned fixture PDFs are processed; a known sentence from each is found in document_chunks and the AI can cite its page.
+# Searching a word that only appears in a scanned document returns it (CMP-27).
+# A blank scanned page PDF ends as ""Processing Failed"" with the exact message and 0 chunks.
+
+h3. Definition of done
+* Code merged into {{develop}} through a Pull Request titled ""CMP-26: Implement OCR for scanned PDFs"" with at least 1 approval.
+* Automated tests for this task added and passing in GitHub Actions.
+* All user-facing texts match exactly the messages written in this task.
+* Jira comment with the PR link and evidence (screenshots, logs or test output) for each acceptance criterion.",,Fernando Cisneros,712020:e0934682-6f48-45b6-ab71-cf52363af8e5,,,,,,,,,0|i0007m:,,24/nov/26 12:00 AM,Sprint 3,5.0,,,{},19/oct/26 8:33 AM,Por hacer
+[CMP-32] Implement source citations in AI answers,KAN-134,10227,Tarea,Por hacer,KAN,Mi equipo de software,software,Fernando Cisneros,712020:e0934682-6f48-45b6-ab71-cf52363af8e5,,High,,Fernando Cisneros,712020:e0934682-6f48-45b6-ab71-cf52363af8e5,Fernando Cisneros,712020:e0934682-6f48-45b6-ab71-cf52363af8e5,Fernando Cisneros,712020:e0934682-6f48-45b6-ab71-cf52363af8e5,19/oct/26 8:33 AM,19/oct/26 8:33 AM,,,26/nov/26 12:00 AM,0,AI-Assistant-RAG,Functional,Must,SRS-V2,"*Requirement type:* Functional
+*Related requirements:* FR-012, AIR-004
+*MoSCoW:* Must
+*Estimated effort:* 5 SP / 8 h
+*Blocked by:* CMP-31
+
+h3. Goal
+Show, for every answer, which document and location each statement comes from.
+
+h3. Tech stack
+* FastAPI builds the citations list; React renders citations in the chat (CMP-33).
+
+h3. Implementation details
+* FastAPI returns citations only for fragments that were sent to the LLM and referenced as \[n\] in the answer; invalid \[n\] markers are removed.
+* Citation object: number, document_id, document_version_id, document_name, version_label, page_start, page_end, section, chunk_id, score.
+* React shows \[n\] as clickable superscripts and a ""Sources"" list under the answer, formatted exactly:
+** PDF: ""1. Environmental Permit 2026.pdf (v2.0) - page 4"" (or ""pages 4-5"")
+** DOCX/TXT with section: ""2. Safety Policy.docx (v1.0) - section ""Emergency procedures""""
+** Without location: ""3. Notes.txt (v1.0)""
+* Logs per request_id list retrieved chunk_ids and cited chunk_ids.
+
+h3. Acceptance criteria
+# 100% of answers with status ""answered"" include at least one citation with document name.
+# Page or section is shown whenever the chunk has it (checked with fixture documents).
+# pytest: cited chunk_ids are always a subset of retrieved chunk_ids (verified in logs for 20 questions).
+
+h3. Definition of done
+* Code merged into {{develop}} through a Pull Request titled ""CMP-32: Implement source citations in AI answers"" with at least 1 approval.
+* Automated tests for this task added and passing in GitHub Actions.
+* All user-facing texts match exactly the messages written in this task.
+* Jira comment with the PR link and evidence (screenshots, logs or test output) for each acceptance criterion.",,Fernando Cisneros,712020:e0934682-6f48-45b6-ab71-cf52363af8e5,,,,,,,,,0|i0007w:,,25/nov/26 12:00 AM,Sprint 4,5.0,,,{},19/oct/26 8:33 AM,Por hacer
+[CMP-27] Implement search and filtering for documents and requirements,KAN-135,10228,Tarea,Por hacer,KAN,Mi equipo de software,software,Fernando Cisneros,712020:e0934682-6f48-45b6-ab71-cf52363af8e5,,Medium,,EMILIO RANGEL TORRES,712020:c7e19fd6-ed9a-41c2-a2d3-9b8c6cc6e284,Fernando Cisneros,712020:e0934682-6f48-45b6-ab71-cf52363af8e5,Fernando Cisneros,712020:e0934682-6f48-45b6-ab71-cf52363af8e5,19/oct/26 8:33 AM,19/oct/26 8:33 AM,,,01/dic/26 12:00 AM,0,Document-Management,Functional,Should,SRS-V2,"*Requirement type:* Functional
+*Related requirements:* FR-009, BR-002
+*MoSCoW:* Should
+*Estimated effort:* 5 SP / 10 h
+*Blocked by:* CMP-21, CMP-15
+
+h3. Goal
+Let users find documents and requirements quickly with filters, seeing only what they are allowed to access.
+
+h3. Tech stack
+* React pages {{/documents}} and {{/requirements}} with a filter bar; filters kept in URL query parameters.
+* Laravel query scopes; PostgreSQL {{unaccent}} + ILIKE for accent- and case-insensitive name search.
+
+h3. Implementation details
+* Documents filters: Name (text), Category (multi-select), Processing status, Upload date from/to, Expiration date from/to. API {{GET /api/documents?name=&category\[\]=&status=&uploaded_from=&uploaded_to=&expires_from=&expires_to=&page=}}.
+* Requirements filters: Name, Status (multi-select), Regulation (text), Deadline from/to. API {{GET /api/compliance-requirements?...}}.
+* All filters combine with AND; the authorization scope (CMP-10) is applied before filters.
+* Text inputs search after 300 ms without typing (debounce); pagination 20 per page; button ""Clear filters"".
+* Results count text: ""<n> results"".
+
+h3. Exact messages
+||Case||HTTP||Exact text shown||
+|No results|-|No results found. Try changing or clearing the filters.|
+|'From' date after 'to' date|422|The 'from' date must be before or equal to the 'to' date.|
+|Invalid date in a filter|422|Enter a valid date.|
+
+h3. Acceptance criteria
+# Searching ""politica"" finds ""Política de Seguridad"" (accent-insensitive).
+# Combining category + expiration range returns only documents that meet both (Pest).
+# A General Employee never receives 'compliance_only' documents in results.
+# Empty results show the exact message; the filtered URL can be copied and opens the same results.
+
+h3. Definition of done
+* Code merged into {{develop}} through a Pull Request titled ""CMP-27: Implement search and filtering for documents and requirements"" with at least 1 approval.
+* Automated tests for this task added and passing in GitHub Actions.
+* All user-facing texts match exactly the messages written in this task.
+* Jira comment with the PR link and evidence (screenshots, logs or test output) for each acceptance criterion.",,Fernando Cisneros,712020:e0934682-6f48-45b6-ab71-cf52363af8e5,,,,,,,,,0|i0007y:,,27/nov/26 12:00 AM,Sprint 4,5.0,,,{},19/oct/26 8:33 AM,Por hacer
+[CMP-34] Build citation viewer with authorization check,KAN-136,10229,Tarea,Por hacer,KAN,Mi equipo de software,software,Fernando Cisneros,712020:e0934682-6f48-45b6-ab71-cf52363af8e5,,Medium,,HECTOR ERNESTO TORRES CARRIZALES,712020:3cdbbd3c-cc9f-4d3d-a8a1-822fdee724b5,Fernando Cisneros,712020:e0934682-6f48-45b6-ab71-cf52363af8e5,Fernando Cisneros,712020:e0934682-6f48-45b6-ab71-cf52363af8e5,19/oct/26 8:33 AM,19/oct/26 8:33 AM,,,30/nov/26 12:00 AM,0,AI-Assistant-RAG,Functional,Should,SRS-V2,"*Requirement type:* Functional
+*Related requirements:* FR-013, BR-009, AIR-006
+*MoSCoW:* Should
+*Estimated effort:* 3 SP / 6 h
+*Blocked by:* CMP-32, CMP-33, CMP-22
+
+h3. Goal
+Let users open the exact source of a citation, only if they are authorized to see that document.
+
+h3. Tech stack
+* React side panel (drawer) in {{/assistant}}; react-pdf (PDF.js) to show PDF pages.
+* Laravel {{GET /api/citations/\{chunk_id\}}} with DocumentPolicy check.
+
+h3. Implementation details
+* Clicking a citation opens a drawer with: document name, version, page/section, the fragment text with a yellow highlight, and button ""Open document"".
+* ""Open document"": PDF opens in react-pdf at the cited page; DOCX/TXT show the extracted text of that section.
+* Laravel checks authorization on the chunk's document before returning anything; denied access writes access.denied audit.
+
+h3. Exact messages
+||Case||HTTP||Exact text shown||
+|User not authorized for the source document|403|You do not have permission to view this source.|
+|Chunk or document no longer exists|404|This source is no longer available.|
+
+h3. Acceptance criteria
+# Selecting a citation opens the drawer with the highlighted fragment and correct page/section.
+# Calling {{/api/citations/\{id\}}} for a 'compliance_only' document as General Employee returns 403 with the exact message and no text in the response body.
+
+h3. Definition of done
+* Code merged into {{develop}} through a Pull Request titled ""CMP-34: Build citation viewer with authorization check"" with at least 1 approval.
+* Automated tests for this task added and passing in GitHub Actions.
+* All user-facing texts match exactly the messages written in this task.
+* Jira comment with the PR link and evidence (screenshots, logs or test output) for each acceptance criterion.",,Fernando Cisneros,712020:e0934682-6f48-45b6-ab71-cf52363af8e5,,,,,,,,,0|i00087:,,27/nov/26 12:00 AM,Sprint 4,3.0,,,{},19/oct/26 8:33 AM,Por hacer
+[CMP-41] Configure 30-day backup retention and test restoration,KAN-137,10230,Tarea,Por hacer,KAN,Mi equipo de software,software,Fernando Cisneros,712020:e0934682-6f48-45b6-ab71-cf52363af8e5,,Medium,,EMILIO RANGEL TORRES,712020:c7e19fd6-ed9a-41c2-a2d3-9b8c6cc6e284,Fernando Cisneros,712020:e0934682-6f48-45b6-ab71-cf52363af8e5,Fernando Cisneros,712020:e0934682-6f48-45b6-ab71-cf52363af8e5,19/oct/26 8:33 AM,19/oct/26 8:33 AM,03/nov/26 8:11 AM,,03/dic/26 12:00 AM,0,Non-Functional,Security-Audit-Ops,Should,SRS-V2,"*Requirement type:* Non-functional
+*Related requirements:* NFR-016
+*MoSCoW:* Should
+*Estimated effort:* 3 SP / 6 h
+*Blocked by:* CMP-40
+
+h3. Goal
+Keep 30 days of backups and prove the system can be restored from them.
+
+h3. Tech stack
+* Bucket lifecycle rule (Backblaze B2 / S3) or {{rclone delete --min-age 30d}} in the backup script.
+* GPG, pg_restore, a separate test database {{compliance_restore_test}}.
+
+h3. Implementation details
+* Retention: delete backups older than 30 days automatically; keep at least 30 daily backups.
+* Restore guide {{docs/operations/restore.md}}: 1) download file with rclone, 2) decrypt with gpg, 3) create empty database, 4) {{pg_restore -d compliance_restore_test}}, 5) run {{php artisan app:verify-restore}} (compares row counts of main tables with the production snapshot report), 6) record duration.
+* Perform one real restore test in a test environment and record the measured time against the RTO from ADR-033.
+
+h3. Acceptance criteria
+# Bucket listing shows backups for the last 30 days and nothing older (screenshot).
+# Restore test completed following only the guide; verify-restore output shows matching row counts; measured time is within the RTO; evidence attached.
+
+h3. Definition of done
+* Code merged into {{develop}} through a Pull Request titled ""CMP-41: Configure 30-day backup retention and test restoration"" with at least 1 approval.
+* Automated tests for this task added and passing in GitHub Actions.
+* All user-facing texts match exactly the messages written in this task.
+* Jira comment with the PR link and evidence (screenshots, logs or test output) for each acceptance criterion.",,Fernando Cisneros,712020:e0934682-6f48-45b6-ab71-cf52363af8e5,,,,,,,,,0|i00088:,,02/dic/26 12:00 AM,Sprint 4,3.0,,,{},19/oct/26 8:33 AM,Por hacer
+[CMP-36] Build AI evaluation set and run evaluation,KAN-138,10231,Tarea,Por hacer,KAN,Mi equipo de software,software,Fernando Cisneros,712020:e0934682-6f48-45b6-ab71-cf52363af8e5,,High,,Fernando Cisneros,712020:e0934682-6f48-45b6-ab71-cf52363af8e5,Fernando Cisneros,712020:e0934682-6f48-45b6-ab71-cf52363af8e5,Fernando Cisneros,712020:e0934682-6f48-45b6-ab71-cf52363af8e5,19/oct/26 8:33 AM,19/oct/26 8:33 AM,,,08/dic/26 12:00 AM,0,AI-Assistant-RAG,Must,Non-Functional,SRS-V2,"*Requirement type:* Non-functional
+*Related requirements:* AIR-008, FR-012, NFR-018
+*MoSCoW:* Must
+*Estimated effort:* 5 SP / 10 h
+*Support:* Emilio Rangel Torres
+*Blocked by:* CMP-32, CMP-03
+
+h3. Goal
+Measure the quality of the AI assistant objectively against the thresholds defined in ADR-013.
+
+h3. Tech stack
+* Python 3.12 evaluation script {{ai-service/eval/run.py}}, pytest fixtures from CMP-03.
+* Reports in Markdown + CSV.
+
+h3. Implementation details
+* Dataset {{ai-service/eval/dataset.jsonl}} with at least 40 questions: 30 answerable (fields: question, expected_document, expected_page_or_section, reference_answer) and 10 not answerable (expected_status = insufficient_information). At least 10 questions in Spanish.
+* Run: {{python -m eval.run --dataset eval/dataset.jsonl --out eval/reports/<date>}} calling the real /v1/ask with the test organization.
+* Metrics: answer relevance (2 reviewers rate 1-5, relevant if average >= 4), source accuracy (% answers citing the expected document), citation traceability (% citations whose chunk was retrieved), insufficient-information accuracy (% of the 10 unanswerable questions correctly answered with that response), % answers with document name (must be 100%), average and p90 latency.
+* Report shows each metric, its threshold, PASS/FAIL, and a list of failed questions with the reason.
+
+h3. Acceptance criteria
+# Dataset committed with the required composition.
+# Report {{eval/reports/<date>/report.md}} and {{results.csv}} committed with all metrics and PASS/FAIL against ADR-013.
+# 100% of document-based answers include the source document name.
+# Any FAIL metric has a Jira Bug created and linked.
+
+h3. Definition of done
+* Code merged into {{develop}} through a Pull Request titled ""CMP-36: Build AI evaluation set and run evaluation"" with at least 1 approval.
+* Automated tests for this task added and passing in GitHub Actions.
+* All user-facing texts match exactly the messages written in this task.
+* Jira comment with the PR link and evidence (screenshots, logs or test output) for each acceptance criterion.",,Fernando Cisneros,712020:e0934682-6f48-45b6-ab71-cf52363af8e5,,,,,,,,,0|i0008g:,,04/dic/26 12:00 AM,Sprint 4,5.0,,,{},19/oct/26 8:33 AM,Por hacer
+[CMP-42] Configure availability monitoring,KAN-139,10232,Tarea,Por hacer,KAN,Mi equipo de software,software,Fernando Cisneros,712020:e0934682-6f48-45b6-ab71-cf52363af8e5,,Medium,,EMILIO RANGEL TORRES,712020:c7e19fd6-ed9a-41c2-a2d3-9b8c6cc6e284,Fernando Cisneros,712020:e0934682-6f48-45b6-ab71-cf52363af8e5,Fernando Cisneros,712020:e0934682-6f48-45b6-ab71-cf52363af8e5,19/oct/26 8:33 AM,19/oct/26 8:33 AM,,,09/dic/26 12:00 AM,0,Non-Functional,Security-Audit-Ops,Should,SRS-V2,"*Requirement type:* Non-functional
+*Related requirements:* NFR-012
+*MoSCoW:* Should
+*Estimated effort:* 2 SP / 4 h
+*Blocked by:* CMP-05
+
+h3. Goal
+Monitor availability continuously and report the monthly availability percentage.
+
+h3. Tech stack
+* Uptime Kuma (self-hosted Docker container) or UptimeRobot free plan.
+* Email (or Telegram/Discord) notifications.
+
+h3. Implementation details
+* HTTP monitor on {{https://<domain>/api/health}} every 60 seconds, expects HTTP 200 and keyword ""ok"".
+* Notification when 2 consecutive checks fail, and when the service recovers; message subject ""\[Compliance Platform\] Service DOWN"" / ""\[Compliance Platform\] Service UP"".
+* Maintenance windows from ADR-032 (proposal Sunday 02:00-04:00 America/Mexico_City) configured as maintenance so they do not count as downtime.
+* Public or private status page showing uptime for 24 h, 7 days and 30 days.
+* Monthly report {{docs/operations/availability-<YYYY-MM>.md}}: availability %, number of incidents, total downtime minutes, target 99%. Because the project ends in December, the report covers the period from deployment to the report date.
+
+h3. Acceptance criteria
+# Monitor is active and a forced stop of the backend produces the DOWN email within 3 minutes and the UP email after recovery.
+# A check during the maintenance window is not counted as downtime (screenshot).
+# First availability report committed with percentage vs the 99% target.
+
+h3. Definition of done
+* Code merged into {{develop}} through a Pull Request titled ""CMP-42: Configure availability monitoring"" with at least 1 approval.
+* Automated tests for this task added and passing in GitHub Actions.
+* All user-facing texts match exactly the messages written in this task.
+* Jira comment with the PR link and evidence (screenshots, logs or test output) for each acceptance criterion.",,Fernando Cisneros,712020:e0934682-6f48-45b6-ab71-cf52363af8e5,,,,,,,,,0|i0008v:,,09/dic/26 12:00 AM,Sprint 4,2.0,,,{},19/oct/26 8:33 AM,Por hacer
+[CMP-43] Execute security and access-control test suite,KAN-140,10233,Tarea,Por hacer,KAN,Mi equipo de software,software,Fernando Cisneros,712020:e0934682-6f48-45b6-ab71-cf52363af8e5,,High,,EMILIO RANGEL TORRES,712020:c7e19fd6-ed9a-41c2-a2d3-9b8c6cc6e284,Fernando Cisneros,712020:e0934682-6f48-45b6-ab71-cf52363af8e5,Fernando Cisneros,712020:e0934682-6f48-45b6-ab71-cf52363af8e5,19/oct/26 8:33 AM,19/oct/26 8:33 AM,,,11/dic/26 12:00 AM,0,Must,Non-Functional,QA-Testing,SRS-V2,"*Requirement type:* Non-functional
+*Related requirements:* FR-018, NFR-003, NFR-005, NFR-013, NFR-014
+*MoSCoW:* Must
+*Estimated effort:* 3 SP / 6 h
+*Blocked by:* CMP-10, CMP-38, CMP-13
+
+h3. Goal
+Prove that access control, HTTPS, password storage and audit protection work as required.
+
+h3. Tech stack
+* Pest feature tests (automated part).
+* OWASP ZAP baseline scan (Docker {{zaproxy/zap-stable}}).
+* Test case documents in Markdown.
+
+h3. Implementation details
+* Write test cases in {{docs/qa/test-cases/security.md}}, each with ID, requirement, preconditions, steps, expected result, actual result, PASS/FAIL, evidence link:
+** TC-FR-018: permissions matrix 24 cases (CMP-10).
+** TC-NFR-003: HTTPS redirect, HSTS, no plain-text credentials (CMP-13).
+** TC-NFR-005: Argon2id hashes, generic login error, protected routes (CMP-08).
+** TC-NFR-013: versions and audit records cannot be modified or deleted (CMP-23, CMP-38).
+** TC-NFR-014: security events recorded with user, action, resource, IP and timestamp (CMP-38).
+* Run OWASP ZAP baseline against staging; attach HTML report; High alerts become Bugs.
+* Every failure is created in Jira as type Bug, label ""security"", linked to the failed test case and to the original task.
+
+h3. Acceptance criteria
+# All 5 test case groups written and executed with evidence.
+# All Must cases PASS (or have a linked Bug with the fix verified before closing this task).
+# ZAP report attached with 0 High alerts open.
+
+h3. Definition of done
+* Test cases, scripts and reports committed in the repository.
+* A Jira Bug exists for every failure, linked to this task.
+* Jira comment with the summary of results (passed / failed) and links to the reports.",,Fernando Cisneros,712020:e0934682-6f48-45b6-ab71-cf52363af8e5,,,,,,,,,0|i00092:,,10/dic/26 12:00 AM,Sprint 4,3.0,,,{},19/oct/26 8:33 AM,Por hacer
+[CMP-44] Execute performance and load tests,KAN-141,10234,Tarea,Por hacer,KAN,Mi equipo de software,software,Fernando Cisneros,712020:e0934682-6f48-45b6-ab71-cf52363af8e5,,Medium,,Leonel de la cruz flores,712020:0c4677be-2052-47d7-a898-b312fb4ab486,Fernando Cisneros,712020:e0934682-6f48-45b6-ab71-cf52363af8e5,Fernando Cisneros,712020:e0934682-6f48-45b6-ab71-cf52363af8e5,19/oct/26 8:33 AM,19/oct/26 8:33 AM,,,11/dic/26 12:00 AM,0,Non-Functional,QA-Testing,Should,SRS-V2,"*Requirement type:* Non-functional
+*Related requirements:* NFR-008, NFR-009, NFR-011
+*MoSCoW:* Should
+*Estimated effort:* 5 SP / 10 h
+*Support:* Fernando Cisneros Torres
+*Blocked by:* CMP-05, CMP-31, CMP-19
+
+h3. Goal
+Verify that the system meets response-time targets under the normal load defined in ADR-031.
+
+h3. Tech stack
+* Grafana k6 load testing (JavaScript scripts), k6 HTML reporter.
+* Staging environment with seed data (Laravel {{LoadTestSeeder}}).
+
+h3. Implementation details
+* Seeder: 1 organization, 100 users (distributed by role), 300 documents (processed), 100 requirements, 2,000 chunks.
+* Script {{tests/load/normal_profile.js}}: ramp 0 -> 100 virtual users in 2 minutes, hold 10 minutes, ramp down 1 minute; request mix per ADR-031; each VU logs in once and reuses the session.
+* Tags: {{type:standard}} for normal requests, {{type:ai}} for /api/assistant/questions.
+* Thresholds: {{http_req_duration\{type:standard\}: p(95)<2000}} and {{http_req_duration\{type:ai\}: p(90)<10000}}; error rate < 1%.
+* Report {{docs/qa/performance-report.md}}: environment specs, load profile, results table, % standard requests under 2 s (target 95%), % AI answers under 10 s (target 90%), bottlenecks found and actions.
+
+h3. Acceptance criteria
+# Load test executed with at least 100 concurrent users following ADR-031; k6 summary and HTML report attached.
+# Report states both percentages and PASS/FAIL; any FAIL has a linked Bug.
+
+h3. Definition of done
+* Test cases, scripts and reports committed in the repository.
+* A Jira Bug exists for every failure, linked to this task.
+* Jira comment with the summary of results (passed / failed) and links to the reports.",,Fernando Cisneros,712020:e0934682-6f48-45b6-ab71-cf52363af8e5,,,,,,,,,0|i0009g:,,09/dic/26 12:00 AM,Sprint 4,5.0,,,{},19/oct/26 8:33 AM,Por hacer
+"[CMP-45] Execute end-to-end tests for UC-001, UC-002 and UC-003",KAN-142,10235,Tarea,Por hacer,KAN,Mi equipo de software,software,Fernando Cisneros,712020:e0934682-6f48-45b6-ab71-cf52363af8e5,,High,,HECTOR ERNESTO TORRES CARRIZALES,712020:3cdbbd3c-cc9f-4d3d-a8a1-822fdee724b5,Fernando Cisneros,712020:e0934682-6f48-45b6-ab71-cf52363af8e5,Fernando Cisneros,712020:e0934682-6f48-45b6-ab71-cf52363af8e5,19/oct/26 8:33 AM,19/oct/26 8:33 AM,,,02/dic/26 12:00 AM,0,Functional,Must,QA-Testing,SRS-V2,"*Requirement type:* Functional
+*Related requirements:* UC-001, UC-002, UC-003
+*MoSCoW:* Must
+*Estimated effort:* 3 SP / 8 h
+*Blocked by:* CMP-19, CMP-23, CMP-32
+
+h3. Goal
+Prove that the main use cases work end to end through the real user interface.
+
+h3. Tech stack
+* Playwright Test (TypeScript) in folder {{e2e/}}, running against the Docker Compose environment with {{DemoSeeder}}.
+* Playwright HTML report with traces, screenshots and videos.
+
+h3. Implementation details
+* For each use case UC-001, UC-002 and UC-003 in the SRS: one Playwright test for the main flow and one test per alternative flow, named ""UC-00X main flow"", ""UC-00X alt <n>: <description>"".
+* Each test verifies every postcondition listed in the SRS (UI state and, where needed, API/database state through a test helper endpoint enabled only in testing).
+* Evidence document {{docs/qa/test-cases/e2e.md}}: table use case, flow, steps, expected, result, evidence link (trace/screenshot).
+* Add the E2E job to GitHub Actions (runs on PRs to main).
+* Failures are created in Jira as Bugs linked to this task.
+
+h3. Acceptance criteria
+# Main and all alternative flows of UC-001, UC-002 and UC-003 are automated and executed; HTML report attached.
+# All postconditions verified; failures logged as Bugs.
+
+h3. Definition of done
+* Test cases, scripts and reports committed in the repository.
+* A Jira Bug exists for every failure, linked to this task.
+* Jira comment with the summary of results (passed / failed) and links to the reports.",,Fernando Cisneros,712020:e0934682-6f48-45b6-ab71-cf52363af8e5,,,,,,,,,0|i0009m:,,01/dic/26 12:00 AM,Sprint 4,3.0,,,{},19/oct/26 8:33 AM,Por hacer
+[CMP-35] Implement feedback on AI answers,KAN-143,10236,Tarea,Por hacer,KAN,Mi equipo de software,software,Fernando Cisneros,712020:e0934682-6f48-45b6-ab71-cf52363af8e5,,Low,,HECTOR ERNESTO TORRES CARRIZALES,712020:3cdbbd3c-cc9f-4d3d-a8a1-822fdee724b5,Fernando Cisneros,712020:e0934682-6f48-45b6-ab71-cf52363af8e5,Fernando Cisneros,712020:e0934682-6f48-45b6-ab71-cf52363af8e5,19/oct/26 8:33 AM,19/oct/26 8:33 AM,,,03/dic/26 12:00 AM,0,AI-Assistant-RAG,Could,Functional,SRS-V2,"*Requirement type:* Functional
+*Related requirements:* Scope 3.1 (no FR ID assigned)
+*MoSCoW:* Could
+*Estimated effort:* 2 SP / 4 h
+*Blocked by:* CMP-33
+
+h3. Goal
+Let users rate AI answers so the team can find and improve weak answers.
+
+h3. Tech stack
+* React buttons under each answer in {{/assistant}}.
+* Laravel {{POST /api/assistant/questions/\{id\}/feedback}}, table {{ai_feedback}} (CMP-06).
+
+h3. Implementation details
+* Two icon buttons: thumbs up (tooltip ""Useful"") and thumbs down (tooltip ""Not useful""). Selected button stays highlighted.
+* After ""Not useful"": optional textarea ""Tell us what was wrong (optional)"", max 500 characters, button ""Send feedback"".
+* Body: {{\{""rating"": ""useful"" | ""not_useful"", ""comment"": ""...""\}}}. One feedback per user per answer; sending again updates it.
+* Stored with user, question, answer (via ai_question_id) and timestamp.
+* Administrators can export feedback as CSV from {{/admin/ai-feedback}}.
+* Add a requirement ID for this feature to the SRS (proposal FR-019).
+
+h3. Exact messages
+||Case||HTTP||Exact text shown||
+|Feedback saved|200|Thanks for your feedback.|
+|Comment longer than 500 characters|422|Comments can be up to 500 characters.|
+|Rating not useful/not_useful|422|Select Useful or Not useful.|
+|Rating someone else's answer|403|You can only rate your own answers.|
+
+h3. Acceptance criteria
+# A user marks an answer as useful or not useful, optionally with a comment, and sees ""Thanks for your feedback."".
+# The ai_feedback row contains user_id, ai_question_id, rating, comment and created_at.
+# Each error case returns its exact message (Pest).
+# SRS updated with the new requirement ID.
+
+h3. Definition of done
+* Code merged into {{develop}} through a Pull Request titled ""CMP-35: Implement feedback on AI answers"" with at least 1 approval.
+* Automated tests for this task added and passing in GitHub Actions.
+* All user-facing texts match exactly the messages written in this task.
+* Jira comment with the PR link and evidence (screenshots, logs or test output) for each acceptance criterion.",,Fernando Cisneros,712020:e0934682-6f48-45b6-ab71-cf52363af8e5,,,,,,,,,0|i0009z:,,03/dic/26 12:00 AM,Sprint 4,2.0,,,{},19/oct/26 8:33 AM,Por hacer
+[CMP-46] Execute browser compatibility tests,KAN-144,10237,Tarea,Por hacer,KAN,Mi equipo de software,software,Fernando Cisneros,712020:e0934682-6f48-45b6-ab71-cf52363af8e5,,Low,,HECTOR ERNESTO TORRES CARRIZALES,712020:3cdbbd3c-cc9f-4d3d-a8a1-822fdee724b5,Fernando Cisneros,712020:e0934682-6f48-45b6-ab71-cf52363af8e5,Fernando Cisneros,712020:e0934682-6f48-45b6-ab71-cf52363af8e5,19/oct/26 8:33 AM,19/oct/26 8:33 AM,,,04/dic/26 12:00 AM,0,Could,Non-Functional,QA-Testing,SRS-V2,"*Requirement type:* Non-functional
+*Related requirements:* NFR-020
+*MoSCoW:* Could
+*Estimated effort:* 2 SP / 4 h
+*Blocked by:* CMP-45
+
+h3. Goal
+Confirm the core functions work in the latest two versions of Chrome, Edge, Firefox and Safari.
+
+h3. Tech stack
+* Playwright projects: chromium, msedge (channel), firefox, webkit.
+* Real Safari on a Mac (or BrowserStack free trial) for the final check.
+
+h3. Implementation details
+* At the start of the cycle, record exact browser versions in {{docs/qa/browser-matrix.md}} (8 versions: 2 per browser).
+* Core functions to check: sign in/out, dashboard, register organization, create requirement, change status, upload document, version history, search and filters, AI chat with citations and citation viewer, user management, alerts bell.
+* Run the E2E suite (CMP-45) on the Playwright projects; do the core-function checklist manually on real Safari.
+* Matrix with PASS/FAIL per function and browser version; UI issues become Bugs with screenshot and browser version.
+
+h3. Acceptance criteria
+# Browser versions recorded before testing.
+# Every core function PASS on each recorded version, or a linked Bug exists.
+
+h3. Definition of done
+* Test cases, scripts and reports committed in the repository.
+* A Jira Bug exists for every failure, linked to this task.
+* Jira comment with the summary of results (passed / failed) and links to the reports.",,Fernando Cisneros,712020:e0934682-6f48-45b6-ab71-cf52363af8e5,,,,,,,,,0|i000a4:,,04/dic/26 12:00 AM,Sprint 4,2.0,,,{},19/oct/26 8:33 AM,Por hacer

@@ -19,7 +19,7 @@ api.interceptors.response.use(
       if (onUnauthorized) {
         onUnauthorized()
       } else if (window.location.pathname !== '/login') {
-        window.location.assign(`/login?redirect=${encodeURIComponent(window.location.pathname)}`)
+        window.location.assign('/login?reason=timeout')
       }
     }
 

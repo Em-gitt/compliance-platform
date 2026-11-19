@@ -19,6 +19,7 @@ export default function LoginPage() {
   const { setUser } = useAuth()
   const [showPassword, setShowPassword] = useState(false)
   const [serverError, setServerError] = useState<string | null>(null)
+  const reason = new URLSearchParams(location.search).get('reason')
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<LoginValues>({
     resolver: zodResolver(loginSchema),
   })
@@ -44,6 +45,15 @@ export default function LoginPage() {
     <main className="flex min-h-screen items-center justify-center p-4">
       <form className="w-full max-w-sm space-y-4" onSubmit={handleSubmit(onSubmit)} noValidate>
         <h1 className="text-2xl font-bold">Sign in</h1>
+        {reason === 'timeout' && (
+          <div
+            className="rounded border border-yellow-400 bg-yellow-100 p-3 text-yellow-900"
+            role="alert"
+            data-testid="timeout-banner"
+          >
+            Your session expired after 30 minutes of inactivity. Please sign in again.
+          </div>
+        )}
         {serverError && <p role="alert">{serverError}</p>}
         <div>
           <label htmlFor="email">Email</label>

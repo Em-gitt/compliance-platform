@@ -1,4 +1,5 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
+import IdleTimeoutModal from './components/IdleTimeoutModal'
 import ProtectedRoute from './components/ProtectedRoute'
 import DocumentDetailPage from './pages/DocumentDetailPage'
 import DocumentUploadPage from './pages/DocumentUploadPage'
@@ -9,28 +10,31 @@ import UsersPage from './pages/UsersPage'
 
 export default function App() {
   return (
-    <Routes>
-      <Route path="/login" element={<LoginPage />} />
-      <Route path="/403" element={<ForbiddenPage />} />
-      <Route element={<ProtectedRoute />}>
-        <Route path="/" element={<HomePage />} />
-        <Route element={<ProtectedRoute ability="view-dashboard" />}>
-          <Route path="/dashboard" element={<HomePage />} />
+    <>
+      <IdleTimeoutModal />
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/403" element={<ForbiddenPage />} />
+        <Route element={<ProtectedRoute />}>
+          <Route path="/" element={<HomePage />} />
+          <Route element={<ProtectedRoute ability="view-dashboard" />}>
+            <Route path="/dashboard" element={<HomePage />} />
+          </Route>
+          <Route element={<ProtectedRoute ability="use-ai-assistant" />}>
+            <Route path="/assistant" element={<HomePage />} />
+          </Route>
+          <Route element={<ProtectedRoute ability="upload-documents" />}>
+            <Route path="/documents/new" element={<DocumentUploadPage />} />
+          </Route>
+          <Route element={<ProtectedRoute ability="view-documents" />}>
+            <Route path="/documents/:id" element={<DocumentDetailPage />} />
+          </Route>
+          <Route element={<ProtectedRoute ability="manage-users" />}>
+            <Route path="/admin/users" element={<UsersPage />} />
+          </Route>
         </Route>
-        <Route element={<ProtectedRoute ability="use-ai-assistant" />}>
-          <Route path="/assistant" element={<HomePage />} />
-        </Route>
-        <Route element={<ProtectedRoute ability="upload-documents" />}>
-          <Route path="/documents/new" element={<DocumentUploadPage />} />
-        </Route>
-        <Route element={<ProtectedRoute ability="view-documents" />}>
-          <Route path="/documents/:id" element={<DocumentDetailPage />} />
-        </Route>
-        <Route element={<ProtectedRoute ability="manage-users" />}>
-          <Route path="/admin/users" element={<UsersPage />} />
-        </Route>
-      </Route>
-      <Route path="*" element={<Navigate to="/dashboard" replace />} />
-    </Routes>
+        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      </Routes>
+    </>
   )
 }

@@ -72,6 +72,15 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $exceptions->render(function (AuthenticationException $exception, $request) {
             if ($request->is('api/*')) {
+                $sessionCookieName = config('session.cookie');
+                if ($request->hasCookie($sessionCookieName) ||
+                    $request->cookies->has($sessionCookieName) ||
+                    str_contains($request->header('Cookie', ''), $sessionCookieName)) {
+                    return response()->json([
+                        'message' => 'Your session expired after 30 minutes of inactivity. Please sign in again.',
+                    ], 401);
+                }
+
                 return response()->json(['message' => 'Unauthenticated.'], 401);
             }
         });

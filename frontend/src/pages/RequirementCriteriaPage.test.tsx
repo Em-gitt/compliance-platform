@@ -40,6 +40,7 @@ function mockApi(role = 'compliance_staff') {
     const gte = criteria.all?.find((c) => c.op === 'gte')
     return { data: { applies: !gte || gte.value <= 120 } }
   })
+  vi.mocked(api.put).mockResolvedValue({ data: { data: {}, message: M.saved } })
 }
 
 function renderPage() {

@@ -127,7 +127,7 @@ export default function RequirementCriteriaPage() {
   const { data: user, isLoading: userLoading } = useCurrentUser()
   const allowed = canCreateRequirements(user?.role)
 
-  const { data: requirement } = useQuery({ queryKey: ['requirements', id], queryFn: () => fetchRequirement(id), enabled: allowed })
+  const { data: requirement, isLoading: reqLoading } = useQuery({ queryKey: ['requirements', id], queryFn: () => fetchRequirement(id), enabled: allowed })
   const { data: catalogs } = useQuery({ queryKey: ['catalogs', 'organization'], queryFn: fetchOrganizationCatalogs, enabled: allowed })
 
   const [loaded, setLoaded] = useState(false)
@@ -208,7 +208,7 @@ export default function RequirementCriteriaPage() {
   const updateRow = (index: number, patch: Partial<ConditionRow>) =>
     setRows((current) => current.map((row, i) => (i === index ? { ...row, ...patch } : row)))
 
-  if (userLoading) return <main className="p-8">Loading...</main>
+  if (userLoading || (allowed && (reqLoading || !loaded))) return <main className="p-8">Loading...</main>
 
   if (!allowed) {
     return (

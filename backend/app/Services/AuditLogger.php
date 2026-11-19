@@ -118,6 +118,10 @@ class AuditLogger
         }
 
         if ($resource instanceof ComplianceRequirement) {
+            if (request()?->is('api/compliance-requirements*')) {
+                return 'compliance_requirement';
+            }
+
             return 'requirement';
         }
 

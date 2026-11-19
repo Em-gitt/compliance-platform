@@ -32,30 +32,15 @@ class ComplianceRequirementController extends Controller
         $user = $request->user();
 
         $requirement = DB::transaction(function () use ($request, $user): ComplianceRequirement {
-            $requirement = ComplianceRequirement::withoutEvents(fn () => ComplianceRequirement::query()->create($request->requirementData() + [
+            $requirement = ComplianceRequirement::query()->create($request->requirementData() + [
                 'organization_id' => $user->organization_id,
                 'created_by' => $user->id,
                 'applicability_criteria' => ['all' => []],
                 'applies' => true,
                 'notification_periods' => self::DEFAULT_NOTIFICATION_PERIODS,
-            ]));
+            ]);
 
             $requirement->requiredDocuments()->createMany($request->requiredDocumentsData());
-
-            AuditLog::query()->create([
-                'user_id' => $user->id,
-                'category' => 'functional',
-                'action' => 'requirement.created',
-                'resource_type' => 'compliance_requirement',
-                'resource_id' => $requirement->id,
-                'ip_address' => $request->ip(),
-                'user_agent' => substr((string) $request->userAgent(), 0, 255),
-                'metadata' => [
-                    'name' => $requirement->name,
-                    'status' => $requirement->status,
-                    'required_documents' => count($request->requiredDocumentsData()),
-                ],
-            ]);
 
             return $requirement;
         });
@@ -84,20 +69,7 @@ class ComplianceRequirementController extends Controller
                 throw ValidationException::withMessages(['status' => RequirementMessages::STATUS_UNCHANGED]);
             }
 
-            ComplianceRequirement::withoutEvents(function () use ($requirement, $to) {
-                $requirement->update(['status' => $to]);
-            });
-
-            AuditLog::query()->create([
-                'user_id' => $request->user()->id,
-                'category' => 'functional',
-                'action' => 'requirement.status_changed',
-                'resource_type' => 'compliance_requirement',
-                'resource_id' => $requirement->id,
-                'ip_address' => $request->ip(),
-                'user_agent' => substr((string) $request->userAgent(), 0, 255),
-                'metadata' => ['from' => $from, 'to' => $to],
-            ]);
+            $requirement->update(['status' => $to]);
 
             return $requirement;
         });

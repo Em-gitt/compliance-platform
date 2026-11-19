@@ -20,20 +20,7 @@ class OrganizationController extends Controller
     public function store(StoreOrganizationRequest $request): JsonResponse
     {
         $organization = DB::transaction(function () use ($request): Organization {
-            $organization = Organization::withoutEvents(fn () => Organization::query()->create($request->organizationData()));
-
-            AuditLog::query()->create([
-                'user_id' => $request->user()->id,
-                'category' => 'functional',
-                'action' => 'organization.created',
-                'resource_type' => 'organization',
-                'resource_id' => $organization->id,
-                'ip_address' => $request->ip(),
-                'user_agent' => substr((string) $request->userAgent(), 0, 255),
-                'metadata' => ['legal_name' => $organization->legal_name],
-            ]);
-
-            return $organization;
+            return Organization::query()->create($request->organizationData());
         });
 
         OrganizationRegistered::dispatch($organization->refresh());

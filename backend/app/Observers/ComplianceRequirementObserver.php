@@ -47,6 +47,18 @@ class ComplianceRequirementObserver
                     continue;
                 }
                 $oldValue = $requirement->getOriginal($key);
+                if (is_string($oldValue) && (str_starts_with($oldValue, '{') || str_starts_with($oldValue, '['))) {
+                    $decoded = json_decode($oldValue, true);
+                    if (json_last_error() === JSON_ERROR_NONE) {
+                        $oldValue = $decoded;
+                    }
+                }
+                if (is_string($newValue) && (str_starts_with($newValue, '{') || str_starts_with($newValue, '['))) {
+                    $decoded = json_decode($newValue, true);
+                    if (json_last_error() === JSON_ERROR_NONE) {
+                        $newValue = $decoded;
+                    }
+                }
                 $changes[$key] = [
                     'old' => $oldValue,
                     'new' => $newValue,

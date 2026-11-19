@@ -36,19 +36,8 @@ class ApplicabilityCriteriaController extends Controller
         $stored = CriteriaValidator::normalize($criteria, $useCriteria);
         $previous = $complianceRequirement->applicability_criteria;
 
-        DB::transaction(function () use ($request, $complianceRequirement, $stored, $previous): void {
-            $complianceRequirement->forceFill(['applicability_criteria' => $stored])->saveQuietly();
-
-            AuditLog::query()->create([
-                'user_id' => $request->user()->id,
-                'category' => 'functional',
-                'action' => 'requirement.updated',
-                'resource_type' => 'compliance_requirement',
-                'resource_id' => $complianceRequirement->id,
-                'ip_address' => $request->ip(),
-                'user_agent' => substr((string) $request->userAgent(), 0, 255),
-                'metadata' => ['changed_fields' => ['applicability_criteria' => ['old' => $previous, 'new' => $stored]]],
-            ]);
+        DB::transaction(function () use ($complianceRequirement, $stored): void {
+            $complianceRequirement->forceFill(['applicability_criteria' => $stored])->save();
         });
 
         CriteriaUpdated::dispatch($complianceRequirement);

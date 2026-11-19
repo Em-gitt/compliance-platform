@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import IdleTimeoutModal from './components/IdleTimeoutModal'
 import ProtectedRoute from './components/ProtectedRoute'
+import AuditLogPage from './pages/AuditLogPage'
 import DocumentDetailPage from './pages/DocumentDetailPage'
 import DocumentUploadPage from './pages/DocumentUploadPage'
 import ForbiddenPage from './pages/ForbiddenPage'
@@ -31,6 +32,7 @@ export default function App() {
           </Route>
           <Route element={<ProtectedRoute ability="manage-users" />}>
             <Route path="/admin/users" element={<UsersPage />} />
+            <Route path="/admin/audit-log" element={<AuditLogPage />} />
           </Route>
         </Route>
         <Route path="*" element={<Navigate to="/dashboard" replace />} />

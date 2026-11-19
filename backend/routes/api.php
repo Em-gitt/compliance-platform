@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AlertController;
+use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\HealthController;
@@ -17,7 +18,7 @@ Route::get('/user', function (Request $request) {
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/users', [UserController::class, 'index']);
     Route::post('/users', [UserController::class, 'store']);
-    Route::patch('/users/{user}', [UserController::class, 'update']);
+    Route::match(['put', 'patch'], '/users/{user}', [UserController::class, 'update']);
     Route::post('/users/{user}/deactivate', [UserController::class, 'deactivate']);
     Route::post('/users/{user}/activate', [UserController::class, 'activate']);
 
@@ -36,6 +37,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/requirements/{requirement}', [RequirementController::class, 'update']);
     Route::post('/requirements/{requirement}/documents', [RequirementController::class, 'linkDocument']);
     Route::delete('/requirements/{requirement}/documents/{requiredDocument}', [RequirementController::class, 'unlinkDocument']);
+
+    Route::get('/audit-logs', [AuditLogController::class, 'index']);
+    Route::match(['put', 'patch', 'delete'], '/audit-logs/{id}', [AuditLogController::class, 'immutableReject']);
 
     Route::post('/auth/logout', [AuthController::class, 'logout']);
     Route::get('/auth/me', [AuthController::class, 'me']);

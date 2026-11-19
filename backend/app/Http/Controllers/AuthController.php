@@ -65,6 +65,20 @@ class AuthController extends Controller
                 $user->save();
             }
 
+            AuditLog::query()->create([
+                'user_id' => $user?->id,
+                'category' => 'security',
+                'action' => 'auth.login_failed',
+                'resource_type' => 'user',
+                'resource_id' => $user?->id,
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+                'metadata' => [
+                    'attempted_email' => $email,
+                ],
+                'created_at' => now(),
+            ]);
+
             return response()->json(['message' => 'The email or password is incorrect.'], 401);
         }
 
@@ -97,6 +111,18 @@ class AuthController extends Controller
             'created_at' => now(),
         ]);
 
+        AuditLog::query()->create([
+            'user_id' => $user->id,
+            'category' => 'security',
+            'action' => 'auth.login_succeeded',
+            'resource_type' => 'user',
+            'resource_id' => $user->id,
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+            'metadata' => [],
+            'created_at' => now(),
+        ]);
+
         return response()->json([
             'id' => $user->id,
             'name' => $user->name,
@@ -119,6 +145,21 @@ class AuthController extends Controller
 
     public function logout(Request $request): JsonResponse
     {
+        $user = $request->user();
+        if ($user) {
+            AuditLog::query()->create([
+                'user_id' => $user->id,
+                'category' => 'security',
+                'action' => 'auth.logout',
+                'resource_type' => 'user',
+                'resource_id' => $user->id,
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+                'metadata' => [],
+                'created_at' => now(),
+            ]);
+        }
+
         Auth::guard('web')->logout();
 
         if ($request->hasSession()) {

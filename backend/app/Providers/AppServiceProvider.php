@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Enums\Role;
+use App\Models\AuditLog;
 use App\Models\ComplianceRequirement;
 use App\Models\Document;
 use App\Models\DocumentVersion;
@@ -14,6 +15,7 @@ use App\Observers\DocumentObserver;
 use App\Observers\DocumentVersionObserver;
 use App\Observers\OrganizationObserver;
 use App\Observers\RequiredDocumentObserver;
+use App\Policies\AuditLogPolicy;
 use App\Policies\ComplianceRequirementPolicy;
 use App\Policies\DocumentPolicy;
 use App\Policies\UserPolicy;
@@ -39,6 +41,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Document::class, DocumentPolicy::class);
         Gate::policy(User::class, UserPolicy::class);
         Gate::policy(ComplianceRequirement::class, ComplianceRequirementPolicy::class);
+        Gate::policy(AuditLog::class, AuditLogPolicy::class);
 
         Gate::define('manage-users', fn ($user): bool => $user->role === Role::Administrator);
         Gate::define('manage-organization', fn ($user): bool => $user->role === Role::Administrator);

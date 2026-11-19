@@ -5,7 +5,10 @@ const STYLES: Record<string, string> = {
   overdue: 'bg-red-100 text-red-800 ring-red-600/30',
 }
 
-export default function StatusBadge({ code, label }: { code: string; label: string }) {
+export default function StatusBadge(props: { code?: string; label?: string; status?: any }) {
+  const code = props.code ?? (typeof props.status === 'object' ? props.status?.code : props.status) ?? 'pending'
+  const label = props.label ?? (typeof props.status === 'object' ? props.status?.label : (props.status ? String(props.status) : 'Pending'))
+
   return (
     <span
       data-testid="status-badge"

@@ -27,13 +27,13 @@ class ComplianceRequirementController extends Controller
         $user = $request->user();
 
         $requirement = DB::transaction(function () use ($request, $user): ComplianceRequirement {
-            $requirement = ComplianceRequirement::query()->create($request->requirementData() + [
+            $requirement = ComplianceRequirement::withoutEvents(fn () => ComplianceRequirement::query()->create($request->requirementData() + [
                 'organization_id' => $user->organization_id,
                 'created_by' => $user->id,
                 'applicability_criteria' => ['all' => []],
                 'applies' => true,
                 'notification_periods' => self::DEFAULT_NOTIFICATION_PERIODS,
-            ]);
+            ]));
 
             $requirement->requiredDocuments()->createMany($request->requiredDocumentsData());
 

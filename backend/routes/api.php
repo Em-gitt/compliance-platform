@@ -4,6 +4,7 @@ use App\Http\Controllers\AlertController;
 use App\Http\Controllers\AssistantController;
 use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\CitationController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\HealthController;
@@ -59,6 +60,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::post('/assistant/questions', [AssistantController::class, 'ask'])->middleware('throttle:assistant-questions');
     Route::get('/assistant/questions', [AssistantController::class, 'index']);
+    Route::get('/citations/{chunk_id}', [CitationController::class, 'show']);
 });
 
 Route::get('/health', HealthController::class);

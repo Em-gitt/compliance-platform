@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { type FormEvent, type KeyboardEvent, useEffect, useRef, useState } from 'react'
 import ReactMarkdown from 'react-markdown'
+import CitationDrawer from '../features/assistant/CitationDrawer'
 import {
   askQuestion,
   fetchQuestionHistory,
@@ -60,7 +61,7 @@ export function citationLabel(citation: Citation): string {
   return parts.join(', ')
 }
 
-function AnswerBubble({ record }: { record: AiQuestion }) {
+function AnswerBubble({ record, onSelectCitation }: { record: AiQuestion; onSelectCitation?: (citation: Citation) => void }) {
   return (
     <div data-testid="answer-bubble">
       <div className="prose prose-sm max-w-none text-sm leading-relaxed [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:mb-2 [&_ul]:list-disc [&_ul]:pl-5">
@@ -70,7 +71,13 @@ function AnswerBubble({ record }: { record: AiQuestion }) {
         <ol aria-label="Sources" className="mt-3 space-y-1 border-t border-gray-200 pt-2 text-xs text-gray-700">
           {record.citations.map((citation, index) => (
             <li key={`${citation.chunk_id ?? index}-${index}`}>
-              <span className="font-semibold">[{index + 1}]</span> {citationLabel(citation)}
+              <button
+                type="button"
+                onClick={() => onSelectCitation?.(citation)}
+                className="text-left font-medium text-indigo-600 hover:text-indigo-900 hover:underline"
+              >
+                <span className="font-semibold">[{index + 1}]</span> {citationLabel(citation)}
+              </button>
             </li>
           ))}
         </ol>
@@ -85,6 +92,7 @@ export default function AssistantPage() {
   const queryClient = useQueryClient()
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [draft, setDraft] = useState('')
+  const [selectedCitation, setSelectedCitation] = useState<Citation | null>(null)
   const textarea = useRef<HTMLTextAreaElement | null>(null)
   const listEnd = useRef<HTMLDivElement | null>(null)
 
@@ -207,7 +215,7 @@ export default function AssistantPage() {
             ) : (
               <div key={message.id} className="flex justify-start">
                 <div className="max-w-[80%] rounded-2xl rounded-bl-sm border border-gray-200 bg-white px-4 py-3 shadow-sm">
-                  {message.kind === 'loading' ? <LoadingBubble /> : <AnswerBubble record={message.record} />}
+                  {message.kind === 'loading' ? <LoadingBubble /> : <AnswerBubble record={message.record} onSelectCitation={setSelectedCitation} />}
                 </div>
               </div>
             ),
@@ -258,6 +266,8 @@ export default function AssistantPage() {
           ))}
         </ul>
       </aside>
+
+      <CitationDrawer citation={selectedCitation} onClose={() => setSelectedCitation(null)} />
     </main>
   )
 }

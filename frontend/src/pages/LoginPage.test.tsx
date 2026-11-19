@@ -1,8 +1,7 @@
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { AuthProvider } from '../auth/AuthContext'
-import { api } from '../lib/api'
 import LoginPage from './LoginPage'
 
 vi.mock('../lib/api', () => ({

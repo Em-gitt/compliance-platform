@@ -2,7 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import axios from 'axios'
 import { useEffect, useRef, useState } from 'react'
 import Toast from '../../components/Toast'
-import { updateRequirementStatus, type ComplianceRequirement } from './api'
+import { updateRequirementStatus } from './api'
 import {
   REQUIREMENT_STATUSES,
   statusChangeQuestion,

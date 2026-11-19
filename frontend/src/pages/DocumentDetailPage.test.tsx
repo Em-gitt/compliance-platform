@@ -275,7 +275,7 @@ describe('DocumentDetailPage', () => {
       },
     })
 
-    const { rerender } = render(
+    render(
       <MemoryRouter initialEntries={['/documents/15']}>
         <Routes>
           <Route path="/documents/:id" element={<DocumentDetailPage />} />

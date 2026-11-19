@@ -34,6 +34,8 @@ describe('Header and Alerts Bell', () => {
       token: 'valid-token',
       login: vi.fn(),
       logout: vi.fn(),
+      isLoading: false,
+      setUser: vi.fn(),
       refreshUser: vi.fn(),
     })
   })

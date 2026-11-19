@@ -5,14 +5,14 @@ import { ASSISTANT_MESSAGES as M, MAX_QUESTION_LENGTH, MIN_QUESTION_LENGTH } fro
 export type Citation = {
   number?: number
   document_id: number
-  document_version_id: number
+  document_version_id?: number
   document_name: string
   version_label?: string | null
   page_start?: number | null
   page_end?: number | null
   page?: number | null
   section?: string | null
-  chunk_id?: string
+  chunk_id?: string | number
   score?: number
 }
 

@@ -564,7 +564,7 @@ def ask_question(
         query_embeddings = embed_texts([payload.question])
         query_embedding = query_embeddings[0]
     except Exception:
-        if os.getenv("APP_ENV") in ("testing", "local"):
+        if os.getenv("APP_ENV", "local") in ("testing", "local"):
             from app.indexing.embeddings import MockEmbeddingProvider
             query_embedding = MockEmbeddingProvider().embed([payload.question])[0]
         else:
@@ -583,7 +583,7 @@ def ask_question(
                 ef_search=rag_config.retrieval.hnsw_ef_search,
             )
     except Exception:
-        if os.getenv("APP_ENV") in ("testing", "local") and not os.getenv("DATABASE_URL") and not os.getenv("TEST_DATABASE_URL"):
+        if os.getenv("APP_ENV", "local") in ("testing", "local") and not os.getenv("DATABASE_URL") and not os.getenv("TEST_DATABASE_URL"):
             try:
                 candidates = chunk_store.find_similar_chunks(
                     None,

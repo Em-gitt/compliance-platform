@@ -103,10 +103,28 @@ jobs:
     needs: [frontend, backend]
     steps:
       - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          extensions: pdo_sqlite, sqlite3, bcmath, sodium
+          tools: composer:v2
+      - name: Setup Backend for E2E
+        working-directory: backend
+        run: |
+          composer install --no-interaction --prefer-dist
+          cp .env.example .env
+          php artisan key:generate
+          touch database/database.sqlite
+          php artisan migrate --force
+          php artisan db:seed --class=DemoSeeder
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - run: npm ci
+      - name: Install Root Dependencies
+        run: npm ci
+      - name: Install Frontend Dependencies
+        working-directory: frontend
+        run: npm ci
       - run: npx playwright install --with-deps chromium
       - name: Run Playwright E2E tests
         run: npx playwright test --project=chromium

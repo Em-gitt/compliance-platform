@@ -12,11 +12,27 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 2 : undefined,
+  workers: process.env.CI ? 1 : undefined,
   reporter: [
     ['html', { outputFolder: 'docs/qa/playwright-report', open: 'never' }],
     ['json', { outputFile: 'docs/qa/playwright-results.json' }],
     ['list'],
+  ],
+  webServer: [
+    {
+      command: 'php artisan serve --host=127.0.0.1 --port=8000',
+      cwd: 'backend',
+      url: 'http://127.0.0.1:8000/sanctum/csrf-cookie',
+      reuseExistingServer: !process.env.CI,
+      timeout: 120_000,
+    },
+    {
+      command: 'npm run dev',
+      cwd: 'frontend',
+      url: 'http://localhost:5173',
+      reuseExistingServer: !process.env.CI,
+      timeout: 120_000,
+    },
   ],
   use: {
     baseURL: process.env.BASE_URL || 'http://localhost:5173',

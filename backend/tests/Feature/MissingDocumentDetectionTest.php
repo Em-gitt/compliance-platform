@@ -1,7 +1,6 @@
 <?php
 
 use App\Enums\Role;
-use App\Models\AuditLog;
 use App\Models\ComplianceRequirement;
 use App\Models\Document;
 use App\Models\DocumentVersion;

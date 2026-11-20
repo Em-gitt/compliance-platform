@@ -10,7 +10,6 @@ import argparse
 import csv
 import json
 import os
-import sys
 import time
 from pathlib import Path
 from uuid import uuid4
@@ -77,12 +76,10 @@ def evaluate_dataset(
         if status_code == 200:
             data = resp.json()
             actual_status = data.get("status")
-            answer = data.get("answer", "")
             citations = data.get("citations", [])
             cited_docs = [c.get("document_name", "") for c in citations]
         else:
             actual_status = f"ERROR_{status_code}"
-            answer = ""
             citations = []
             cited_docs = []
 
@@ -164,7 +161,6 @@ def evaluate_dataset(
         sum(1 for r in answerable_results if r["has_doc_name"]) / len(answerable_results) * 100.0
         if answerable_results else 100.0
     )
-    total_citations = sum(len(r["cited_documents"].split("; ")) for r in results if r["cited_documents"])
     traceable_pct = 100.0
 
     latencies_sorted = sorted(latencies)

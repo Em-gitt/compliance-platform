@@ -4,9 +4,12 @@ use App\Models\AuditLog;
 use App\Models\Organization;
 use App\Models\User;
 use Database\Seeders\CatalogSeeder;
+use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\RateLimiter;
 
 uses(RefreshDatabase::class);
 
@@ -151,11 +154,11 @@ it('strictly ignores AUTH_RATE_LIMIT in production environment', function (): vo
 
     app()->detectEnvironment(fn () => 'production');
 
-    $request = \Illuminate\Http\Request::create('/api/auth/login', 'POST', [], [], [], ['REMOTE_ADDR' => '1.2.3.4']);
-    $limiter = \Illuminate\Support\Facades\RateLimiter::limiter('login');
+    $request = Request::create('/api/auth/login', 'POST', [], [], [], ['REMOTE_ADDR' => '1.2.3.4']);
+    $limiter = RateLimiter::limiter('login');
     $limit = $limiter($request);
 
-    expect($limit)->toBeInstanceOf(\Illuminate\Cache\RateLimiting\Limit::class)
+    expect($limit)->toBeInstanceOf(Limit::class)
         ->and($limit->maxAttempts)->toBe(10);
 
     // In testing/local environment, it respects the configured limit
@@ -165,4 +168,3 @@ it('strictly ignores AUTH_RATE_LIMIT in production environment', function (): vo
 
     config(['auth.login_rate_limit' => 10]);
 });
-

@@ -10,6 +10,7 @@ use App\Models\AuditLog;
 use App\Models\Document;
 use App\Models\DocumentVersion;
 use App\Services\DocumentEncryptionService;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -131,7 +132,7 @@ class DocumentController extends Controller
         return response()->json($documents)->header('X-Total-Count', (string) $documents->count());
     }
 
-    private function parseDateFilter(?string $date, ?string &$error): ?\Carbon\Carbon
+    private function parseDateFilter(?string $date, ?string &$error): ?Carbon
     {
         $error = null;
         if ($date === null || trim($date) === '') {
@@ -139,7 +140,7 @@ class DocumentController extends Controller
         }
 
         try {
-            $parsed = \Carbon\Carbon::parse($date);
+            $parsed = Carbon::parse($date);
             if ($parsed->year < 1900 || $parsed->year > 2200) {
                 $error = 'Enter a valid date.';
 
@@ -147,7 +148,7 @@ class DocumentController extends Controller
             }
 
             return $parsed;
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             $error = 'Enter a valid date.';
 
             return null;

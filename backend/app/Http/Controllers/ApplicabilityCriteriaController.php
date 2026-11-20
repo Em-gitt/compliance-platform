@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Events\CriteriaUpdated;
 use App\Http\Resources\ComplianceRequirementDetailResource;
-use App\Models\AuditLog;
 use App\Models\ComplianceRequirement;
 use App\Models\Organization;
 use App\Services\Compliance\ApplicabilityEvaluator;

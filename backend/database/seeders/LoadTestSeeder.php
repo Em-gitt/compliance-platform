@@ -4,13 +4,11 @@ namespace Database\Seeders;
 
 use App\Models\ComplianceRequirement;
 use App\Models\Document;
-use App\Models\DocumentVersion;
 use App\Models\Organization;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
 
 class LoadTestSeeder extends Seeder
 {
@@ -105,7 +103,7 @@ class LoadTestSeeder extends Seeder
                     'organization_id' => $organization->id,
                     'name' => "Requisito de Cumplimiento #{$idx} - {$cat}",
                     'description' => "Descripcion detallada del requisito normativo #{$idx} para auditoria.",
-                    'regulation' => "NOM-00" . (($idx % 35) + 1) . "-STPS",
+                    'regulation' => 'NOM-00'.(($idx % 35) + 1).'-STPS',
                     'status' => $status,
                     'deadline' => now()->addDays(($idx % 60) - 10)->toDateString(),
                     'notification_periods' => json_encode([30, 15, 7, 1]),
@@ -179,7 +177,7 @@ class LoadTestSeeder extends Seeder
                         'chunk_index' => (int) floor($c / $versionsCount),
                         'page_start' => ($c % 20) + 1,
                         'page_end' => ($c % 20) + 1,
-                        'section' => "Seccion " . (($c % 10) + 1),
+                        'section' => 'Seccion '.(($c % 10) + 1),
                         'content' => "Contenido del fragmento normativo #{$c}. Este fragmento contiene especificaciones tecnicas sobre medidas de seguridad, prevencion y regulacion aplicable a la organizacion conforme a la normativa oficial.",
                         'is_current' => true,
                         'created_at' => now(),
@@ -191,7 +189,7 @@ class LoadTestSeeder extends Seeder
                     }
                 }
 
-                if (!empty($chunksBatch)) {
+                if (! empty($chunksBatch)) {
                     DB::table('document_chunks')->insert($chunksBatch);
                 }
             }

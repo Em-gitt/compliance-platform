@@ -96,7 +96,7 @@ class AssistantController extends Controller
     {
         $question = AiQuestion::find($id);
 
-        if (!$question) {
+        if (! $question) {
             return response()->json(['message' => 'Question not found.'], 404);
         }
 
@@ -105,7 +105,7 @@ class AssistantController extends Controller
         }
 
         $rating = $request->input('rating');
-        if (!in_array($rating, ['useful', 'not_useful'], true)) {
+        if (! in_array($rating, ['useful', 'not_useful'], true)) {
             return response()->json([
                 'message' => 'Select Useful or Not useful.',
                 'errors' => ['rating' => ['Select Useful or Not useful.']],

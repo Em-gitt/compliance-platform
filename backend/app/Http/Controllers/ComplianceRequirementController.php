@@ -6,9 +6,9 @@ use App\Http\Requests\StoreComplianceRequirementRequest;
 use App\Http\Requests\UpdateRequirementStatusRequest;
 use App\Http\Resources\ComplianceRequirementDetailResource;
 use App\Http\Resources\ComplianceRequirementListResource;
-use App\Models\AuditLog;
 use App\Models\ComplianceRequirement;
 use App\Support\RequirementMessages;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -61,7 +61,7 @@ class ComplianceRequirementController extends Controller
     {
         $to = $request->validated('status');
 
-        $requirement = DB::transaction(function () use ($request, $complianceRequirement, $to): ComplianceRequirement {
+        $requirement = DB::transaction(function () use ($complianceRequirement, $to): ComplianceRequirement {
             $requirement = ComplianceRequirement::query()->lockForUpdate()->findOrFail($complianceRequirement->id);
             $from = $requirement->status;
 
@@ -140,7 +140,7 @@ class ComplianceRequirementController extends Controller
         return ComplianceRequirementListResource::collection($requirements);
     }
 
-    private function parseDateFilter(?string $date, ?string &$error): ?\Carbon\Carbon
+    private function parseDateFilter(?string $date, ?string &$error): ?Carbon
     {
         $error = null;
         if ($date === null || trim($date) === '') {
@@ -148,7 +148,7 @@ class ComplianceRequirementController extends Controller
         }
 
         try {
-            $parsed = \Carbon\Carbon::parse($date);
+            $parsed = Carbon::parse($date);
             if ($parsed->year < 1900 || $parsed->year > 2200) {
                 $error = 'Enter a valid date.';
 

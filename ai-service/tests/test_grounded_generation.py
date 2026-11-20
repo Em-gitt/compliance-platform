@@ -1,8 +1,6 @@
 """Tests for Grounded Answer Generation & Insufficient Information Response (CMP-31 / NFR-018 / AIR-003 / AIR-005 / AIR-007 / BR-005 / BR-006 / BR-007)."""
 
-import json
 from uuid import uuid4
-import pytest
 from fastapi.testclient import TestClient
 
 from app.main import (

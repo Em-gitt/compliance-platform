@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\ComplianceRequirement;
 use App\Models\Organization;
 use App\Models\User;
 use Illuminate\Database\Seeder;
@@ -27,7 +28,7 @@ class DemoSeeder extends Seeder
 
         $complianceStaff = User::query()->where('email', 'demo.compliance_staff@compliance-platform.test')->first();
         if ($complianceStaff) {
-            \App\Models\ComplianceRequirement::query()->firstOrCreate(
+            ComplianceRequirement::query()->firstOrCreate(
                 ['name' => 'NOM-035-STPS-2018 Factores de riesgo psicosocial', 'organization_id' => $organization->id],
                 [
                     'description' => 'Identificación, análisis, prevención y control de factores de riesgo psicosocial.',

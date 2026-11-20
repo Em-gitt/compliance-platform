@@ -74,7 +74,7 @@ test('ADR-031 workload benchmark satisfies standard p95 < 2.0s and AI p90 < 10.0
 
         $elapsed = (hrtime(true) - $start) / 1e9;
         $standardDurations[] = $elapsed;
-        if (!$res->isSuccessful()) {
+        if (! $res->isSuccessful()) {
             $errors++;
         }
     }
@@ -85,7 +85,7 @@ test('ADR-031 workload benchmark satisfies standard p95 < 2.0s and AI p90 < 10.0
         $res = $this->actingAs($staff)->getJson('/api/documents?name=politica');
         $elapsed = (hrtime(true) - $start) / 1e9;
         $standardDurations[] = $elapsed;
-        if (!$res->isSuccessful()) {
+        if (! $res->isSuccessful()) {
             $errors++;
         }
     }
@@ -97,7 +97,7 @@ test('ADR-031 workload benchmark satisfies standard p95 < 2.0s and AI p90 < 10.0
         $res = $this->actingAs($staff)->getJson("/api/documents/{$doc->id}");
         $elapsed = (hrtime(true) - $start) / 1e9;
         $standardDurations[] = $elapsed;
-        if (!$res->isSuccessful()) {
+        if (! $res->isSuccessful()) {
             $errors++;
         }
     }
@@ -115,7 +115,7 @@ test('ADR-031 workload benchmark satisfies standard p95 < 2.0s and AI p90 < 10.0
         ]);
         $elapsed = (hrtime(true) - $start) / 1e9;
         $standardDurations[] = $elapsed;
-        if (!$res->isSuccessful()) {
+        if (! $res->isSuccessful()) {
             $errors++;
         }
     }
@@ -128,7 +128,7 @@ test('ADR-031 workload benchmark satisfies standard p95 < 2.0s and AI p90 < 10.0
         ]);
         $elapsed = (hrtime(true) - $start) / 1e9;
         $aiDurations[] = $elapsed;
-        if (!$res->isSuccessful()) {
+        if (! $res->isSuccessful()) {
             $errors++;
         }
     }

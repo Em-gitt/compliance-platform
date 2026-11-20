@@ -1,14 +1,11 @@
 """Tests for Permission-Aware Retrieval (CMP-30 / FR-011 / AIR-002 / AIR-006 / BR-002)."""
 
 import json
-from pathlib import Path
 from uuid import uuid4
-import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
 from app.indexing.store import RetrievedChunk
-from app.providers.llm import generate_answer
 from app.security import get_expected_token
 
 client = TestClient(app)

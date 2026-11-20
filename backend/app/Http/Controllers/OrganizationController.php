@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Events\OrganizationRegistered;
 use App\Http\Requests\StoreOrganizationRequest;
 use App\Http\Resources\OrganizationResource;
-use App\Models\AuditLog;
 use App\Models\Organization;
 use App\Support\OrganizationMessages;
 use Illuminate\Http\JsonResponse;

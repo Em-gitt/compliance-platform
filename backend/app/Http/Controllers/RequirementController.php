@@ -7,6 +7,7 @@ use App\Models\ComplianceRequirement;
 use App\Models\Document;
 use App\Models\RequiredDocument;
 use App\Services\RequiredDocumentStatusService;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -118,7 +119,7 @@ class RequirementController extends Controller
         return response()->json($data)->header('X-Total-Count', (string) $data->count());
     }
 
-    private function parseDateFilter(?string $date, ?string &$error): ?\Carbon\Carbon
+    private function parseDateFilter(?string $date, ?string &$error): ?Carbon
     {
         $error = null;
         if ($date === null || trim($date) === '') {
@@ -126,7 +127,7 @@ class RequirementController extends Controller
         }
 
         try {
-            $parsed = \Carbon\Carbon::parse($date);
+            $parsed = Carbon::parse($date);
             if ($parsed->year < 1900 || $parsed->year > 2200) {
                 $error = 'Enter a valid date.';
 
@@ -134,7 +135,7 @@ class RequirementController extends Controller
             }
 
             return $parsed;
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             $error = 'Enter a valid date.';
 
             return null;

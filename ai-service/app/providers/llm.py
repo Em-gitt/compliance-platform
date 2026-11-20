@@ -8,8 +8,10 @@ from app.providers.client import ProviderClient
 from app.providers.registry import LLM
 from app.providers.settings import ProviderSettings, get_settings
 
+import os
+
 MOCK_ANSWER = (
-    "According to section 4.2 of the Compliance Manual, compliance records and audit logs "
+    "According to section 4.2 of the Compliance Manual [1], compliance records and audit logs "
     "must be maintained for at least 7 years."
 )
 
@@ -24,7 +26,7 @@ def generate_answer(
     settings = settings or get_settings()
 
     if settings.llm_provider == "mock":
-        return MOCK_ANSWER
+        return os.getenv("MOCK_LLM_ANSWER", MOCK_ANSWER)
 
     headers = {}
     if settings.groq_api_key and settings.llm_provider == "groq":

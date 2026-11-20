@@ -1,4 +1,5 @@
-import { useAuth } from '../auth/AuthContext'
+import { useContext } from 'react'
+import { AuthContext } from '../auth/AuthContext'
 
 export type Ability =
   | 'manage-users'
@@ -26,7 +27,6 @@ export function can(role: string | undefined, ability: Ability): boolean {
 }
 
 export function useCan(ability: Ability): boolean {
-  const { user } = useAuth()
-
-  return can(user?.role, ability)
+  const auth = useContext(AuthContext)
+  return can(auth?.user?.role, ability)
 }

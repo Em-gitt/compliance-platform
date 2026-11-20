@@ -149,7 +149,7 @@ def test_ingest_and_ask_with_authorized_provider_only_reach_allowed_hosts(monkey
     database.create_version()
     # bge-m3 runs in-process (no HTTP); the mock keeps the test light while the LLM goes to Groq.
     monkeypatch.setattr(embeddings_module, "get_embedding_provider", MockEmbeddingProvider)
-    completion = {"choices": [{"message": {"content": "Records are kept for 7 years."}}]}
+    completion = {"choices": [{"message": {"content": "Records are kept for 7 years [1]."}}]}
 
     with respx.mock(assert_all_mocked=True) as router:
         groq = router.post(GROQ_COMPLETIONS).respond(200, json=completion)
@@ -170,7 +170,7 @@ def test_ingest_and_ask_with_authorized_provider_only_reach_allowed_hosts(monkey
 
     assert ingest.status_code == 200
     assert ask.status_code == 200
-    assert ask.json()["answer"] == "Records are kept for 7 years."
+    assert ask.json()["answer"] == "Records are kept for 7 years [1]."
     assert groq.call_count == 1
     assert groq.calls[0].request.headers["Authorization"] == "Bearer test-key"
 

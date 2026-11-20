@@ -591,6 +591,15 @@
       },
       "Citation": {
         "properties": {
+          "number": {
+            "type": "integer",
+            "title": "Number",
+            "description": "Sequential citation reference index [n]",
+            "default": 1,
+            "examples": [
+              1
+            ]
+          },
           "document_id": {
             "type": "integer",
             "title": "Document Id",
@@ -615,10 +624,50 @@
               "Security_Policy_2026.pdf"
             ]
           },
+          "version_label": {
+            "type": "string",
+            "title": "Version Label",
+            "description": "Version label of the document",
+            "default": "1.0",
+            "examples": [
+              "1.0"
+            ]
+          },
+          "page_start": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Page Start",
+            "description": "Starting page of the excerpt",
+            "examples": [
+              4
+            ]
+          },
+          "page_end": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Page End",
+            "description": "Ending page of the excerpt",
+            "examples": [
+              5
+            ]
+          },
           "page": {
             "type": "integer",
             "title": "Page",
             "description": "Page number where snippet was found",
+            "default": 1,
             "examples": [
               4
             ]
@@ -627,6 +676,7 @@
             "type": "string",
             "title": "Section",
             "description": "Section title or identifier",
+            "default": "",
             "examples": [
               "4.2 Data Retention Schedule"
             ]
@@ -653,8 +703,6 @@
           "document_id",
           "document_version_id",
           "document_name",
-          "page",
-          "section",
           "chunk_id",
           "score"
         ],
@@ -748,6 +796,20 @@
             "default": false,
             "examples": [
               false
+            ]
+          },
+          "ocr_confidence": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ocr Confidence",
+            "examples": [
+              95.4
             ]
           }
         },

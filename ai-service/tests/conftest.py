@@ -19,6 +19,7 @@ CREATE TABLE organizations (id bigserial PRIMARY KEY);
 CREATE TABLE documents (
     id bigserial PRIMARY KEY,
     organization_id bigint NOT NULL REFERENCES organizations(id) ON DELETE RESTRICT,
+    name varchar(255) NOT NULL DEFAULT 'Document',
     access_level varchar(20) NOT NULL DEFAULT 'all_staff',
     is_archived boolean NOT NULL DEFAULT false
 );

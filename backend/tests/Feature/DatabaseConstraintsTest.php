@@ -7,10 +7,15 @@ use App\Models\User;
 use Database\Seeders\CatalogSeeder;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 
 uses(RefreshDatabase::class);
 
 beforeEach(function (): void {
+    if (DB::getDriverName() === 'sqlite') {
+        DB::statement('PRAGMA foreign_keys = ON;');
+    }
+
     $this->seed(CatalogSeeder::class);
     $organization = Organization::query()->create([
         'legal_name' => 'Constraint Test Organization', 'organization_type' => 'private_company',
@@ -36,7 +41,7 @@ it('rejects a document version whose document foreign key does not exist', funct
         ]);
         $this->fail('A foreign-key violation was expected.');
     } catch (QueryException $exception) {
-        expect($exception->errorInfo[0] ?? null)->toBe('23503');
+        expect(in_array($exception->errorInfo[0] ?? null, ['23503', '23000']))->toBeTrue();
     }
 });
 

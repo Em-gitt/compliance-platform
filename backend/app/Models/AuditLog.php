@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Exceptions\AuditLogImmutableException;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -10,6 +11,17 @@ class AuditLog extends Model
     public const UPDATED_AT = null;
 
     protected $guarded = [];
+
+    protected static function booted(): void
+    {
+        static::updating(function () {
+            throw new AuditLogImmutableException('Audit records cannot be modified or deleted.');
+        });
+
+        static::deleting(function () {
+            throw new AuditLogImmutableException('Audit records cannot be modified or deleted.');
+        });
+    }
 
     protected function casts(): array
     {

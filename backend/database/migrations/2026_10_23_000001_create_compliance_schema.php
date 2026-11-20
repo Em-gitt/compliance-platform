@@ -54,6 +54,8 @@ return new class extends Migration
         if ($isPgsql) {
             DB::statement("ALTER TABLE document_versions ADD CONSTRAINT document_versions_status_check CHECK (status IN ('queued', 'processing', 'processed', 'processing_failed'))");
             DB::statement('CREATE UNIQUE INDEX document_versions_one_current_per_document ON document_versions (document_id) WHERE is_current');
+        } elseif (DB::getDriverName() === 'sqlite') {
+            DB::statement('CREATE UNIQUE INDEX document_versions_one_current_per_document ON document_versions (document_id) WHERE is_current = 1');
         }
 
         Schema::create('compliance_requirements', function (Blueprint $table) {

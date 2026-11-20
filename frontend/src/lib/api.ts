@@ -3,7 +3,9 @@ import axios from 'axios'
 export const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL ?? 'http://localhost:8000',
   withCredentials: true,
+  // Send the XSRF-TOKEN cookie when the SPA and the API run on different ports (localhost:5173 -> :8000).
   withXSRFToken: true,
+  headers: { Accept: 'application/json' },
 })
 
 let onUnauthorized: (() => void) | undefined
@@ -19,7 +21,7 @@ api.interceptors.response.use(
       if (onUnauthorized) {
         onUnauthorized()
       } else if (window.location.pathname !== '/login') {
-        window.location.assign(`/login?redirect=${encodeURIComponent(window.location.pathname)}`)
+        window.location.assign('/login?reason=timeout')
       }
     }
 

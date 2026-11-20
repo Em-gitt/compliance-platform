@@ -4,8 +4,10 @@ import { api, setUnauthorizedHandler } from '../lib/api'
 export type AuthUser = {
   id: number
   name: string
+  email?: string
   role: string
   organization_id: number
+  is_active?: boolean
 }
 
 type AuthContextValue = {
@@ -13,9 +15,12 @@ type AuthContextValue = {
   isLoading: boolean
   setUser: (user: AuthUser | null) => void
   refreshUser: () => Promise<void>
+  logout: () => Promise<void>
+  login?: (credentials: Record<string, unknown>) => Promise<unknown>
+  token?: string | null
 }
 
-const AuthContext = createContext<AuthContextValue | undefined>(undefined)
+export const AuthContext = createContext<AuthContextValue | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null)
@@ -44,7 +49,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => setUnauthorizedHandler()
   }, [])
 
-  const value = useMemo(() => ({ user, isLoading, setUser, refreshUser }), [user, isLoading])
+  const logout = async () => {
+    try {
+      await api.post('/api/auth/logout')
+    } catch {
+      // ignore
+    } finally {
+      setUser(null)
+      window.location.assign('/login')
+    }
+  }
+
+  const value = useMemo(() => ({ user, isLoading, setUser, refreshUser, logout }), [user, isLoading])
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

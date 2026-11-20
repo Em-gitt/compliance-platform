@@ -6,8 +6,11 @@ use App\Models\Alert;
 use App\Models\DocumentVersion;
 use App\Services\DocumentEncryptionService;
 use App\Services\DocumentVersionProcessor;
+use App\Services\DocumentVersionService;
 use App\Services\Exceptions\AiServiceEmbeddingFailedException;
 use App\Services\Exceptions\AiServiceExtractionFailedException;
+use App\Services\Exceptions\AiServiceOcrFailedException;
+use App\Services\Exceptions\AiServiceValidationException;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -71,6 +74,8 @@ class ProcessDocumentVersion implements ShouldQueue
         if ($result->status === DocumentVersion::STATUS_PROCESSING_FAILED) {
             throw new RuntimeException($result->failure_reason ?: 'Processing failed.');
         }
+
+        app(DocumentVersionService::class)->makeCurrent($this->version);
     }
 
     /**
@@ -84,6 +89,10 @@ class ProcessDocumentVersion implements ShouldQueue
         if (! $reason && $exception) {
             if ($exception instanceof AiServiceExtractionFailedException) {
                 $reason = DocumentVersion::extractionFailureMessage($exception->getMessage());
+            } elseif ($exception instanceof AiServiceOcrFailedException) {
+                $reason = DocumentVersion::MESSAGE_OCR_FAILED;
+            } elseif ($exception instanceof AiServiceValidationException) {
+                $reason = $exception->getMessage();
             } elseif ($exception instanceof AiServiceEmbeddingFailedException) {
                 $reason = DocumentVersion::MESSAGE_INDEXING_FAILED;
             } else {
@@ -106,8 +115,14 @@ class ProcessDocumentVersion implements ShouldQueue
         ])->save();
 
         $document = $this->version->document;
-        $documentName = $document?->name ?? 'document';
-        $trimmedReason = rtrim($reason, '.');
+        $currentVersion = $document?->versions()->where('is_current', true)->where('id', '!=', $this->version->id)->first();
+        if ($currentVersion) {
+            $failureAlertMessage = "Version {$this->version->version_label} could not be processed. Version {$currentVersion->version_label} remains the current version.";
+        } else {
+            $documentName = $document?->name ?? 'document';
+            $trimmedReason = rtrim($reason, '.');
+            $failureAlertMessage = "Processing failed for \"{$documentName}\" (version {$this->version->version_label}): {$trimmedReason}.";
+        }
 
         Alert::create([
             'user_id' => $this->version->uploaded_by,
@@ -115,7 +130,7 @@ class ProcessDocumentVersion implements ShouldQueue
             'compliance_requirement_id' => null,
             'type' => 'processing_failed',
             'period_days' => 0,
-            'message' => "Processing failed for \"{$documentName}\" (version {$this->version->version_label}): {$trimmedReason}.",
+            'message' => $failureAlertMessage,
             'due_date' => now()->toDateString(),
         ]);
     }

@@ -151,8 +151,50 @@ services:
       retries: 6
       start_period: 5s
 
+  db-backup:
+    build:
+      context: .
+      dockerfile: ./infra/backup/Dockerfile
+    restart: unless-stopped
+    environment:
+      POSTGRES_HOST: db
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${DB_DATABASE}
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      BACKUP_ENCRYPTION_PASSPHRASE: ${BACKUP_ENCRYPTION_PASSPHRASE:-}
+      BACKUP_ENCRYPTION_KEY_FILE: ${BACKUP_ENCRYPTION_KEY_FILE:-/run/secrets/backup_passphrase.key}
+      BACKUP_REMOTE: ${BACKUP_REMOTE:-}
+      BACKUP_LOG_FILE: /var/log/backup.log
+      HEALTHCHECK_URL: ${BACKUP_HEALTHCHECK_URL:-}
+      ALERT_EMAIL_TO: ${BACKUP_ALERT_EMAIL:-team@compliance-platform.local}
+      SMTP_HOST: ${MAIL_HOST:-mailpit}
+      SMTP_PORT: ${MAIL_PORT:-1025}
+    volumes:
+      - documents_storage:/var/www/html/storage/app/documents:ro
+      - backup_logs:/var/log
+    depends_on:
+      db:
+        condition: service_healthy
+
+  uptime-kuma:
+    image: louislam/uptime-kuma:1
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    volumes:
+      - uptime_kuma_data:/app/data
+    healthcheck:
+      test: ["CMD-SHELL", "node -e 'require(\"http\").get(\"http://localhost:3001\", (res) => process.exit(res.statusCode === 200 || res.statusCode === 302 ? 0 : 1))'"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
 volumes:
   pg_data:
   documents_storage:
   backend_vendor:
   certbot_www:
+  backup_logs:
+  uptime_kuma_data:

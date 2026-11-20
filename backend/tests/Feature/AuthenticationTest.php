@@ -4,9 +4,12 @@ use App\Models\AuditLog;
 use App\Models\Organization;
 use App\Models\User;
 use Database\Seeders\CatalogSeeder;
+use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\RateLimiter;
 
 uses(RefreshDatabase::class);
 
@@ -133,7 +136,7 @@ it('keeps health public and rate limits login attempts with the exact message', 
 
     $this->withHeaders([
         'X-Forwarded-For' => $ipAddress,
-        'X-Forwarded-Proto' => 'http',
+        'X-Forwarded-Proto' => 'https',
     ]);
 
     for ($attempt = 0; $attempt < 10; $attempt++) {
@@ -144,4 +147,24 @@ it('keeps health public and rate limits login attempts with the exact message', 
     $this->postJson('/api/auth/login', ['email' => 'missing@example.test', 'password' => 'password'])
         ->assertStatus(429)
         ->assertJsonPath('message', fn (string $message): bool => (bool) preg_match('/^Too many sign-in attempts\\. Try again in \\d+ seconds\\.$/', $message));
+});
+
+it('strictly ignores AUTH_RATE_LIMIT in production environment', function (): void {
+    config(['auth.login_rate_limit' => 100]);
+
+    app()->detectEnvironment(fn () => 'production');
+
+    $request = Request::create('/api/auth/login', 'POST', [], [], [], ['REMOTE_ADDR' => '1.2.3.4']);
+    $limiter = RateLimiter::limiter('login');
+    $limit = $limiter($request);
+
+    expect($limit)->toBeInstanceOf(Limit::class)
+        ->and($limit->maxAttempts)->toBe(10);
+
+    // In testing/local environment, it respects the configured limit
+    app()->detectEnvironment(fn () => 'testing');
+    $limitTesting = $limiter($request);
+    expect($limitTesting->maxAttempts)->toBe(100);
+
+    config(['auth.login_rate_limit' => 10]);
 });

@@ -1,0 +1,54 @@
+{
+  "version": "1.0",
+  "description": "Uptime Kuma monitoring configuration for Compliance Platform (CMP-42 / ADR-032 / NFR-012)",
+  "monitors": [
+    {
+      "name": "Compliance Platform API Health",
+      "type": "keyword",
+      "url": "https://compliance-platform.online/api/health",
+      "interval": 60,
+      "retryInterval": 60,
+      "maxretries": 2,
+      "keyword": "ok",
+      "expectedStatusCodes": [200],
+      "timeout": 10,
+      "ignoreTls": false,
+      "upsideDown": false,
+      "description": "Continuous synthetic probe verifying API, PostgreSQL, and AI Service health"
+    }
+  ],
+  "notification": {
+    "name": "Engineering Alert Email",
+    "type": "smtp",
+    "recipients": ["ops@compliance-platform.online", "team@compliance-platform.local"],
+    "templates": {
+      "down": {
+        "subject": "[Compliance Platform] Service DOWN",
+        "body": "Alert: Compliance Platform API health check failed for 2 consecutive probes. Service is DOWN."
+      },
+      "up": {
+        "subject": "[Compliance Platform] Service UP",
+        "body": "Notice: Compliance Platform API health check recovered successfully. Service is UP."
+      }
+    }
+  },
+  "maintenance": {
+    "name": "Weekly Routine Maintenance (ADR-032)",
+    "strategy": "cron",
+    "timezone": "America/Mexico_City",
+    "schedule": "0 2 * * 0",
+    "durationMinutes": 120,
+    "description": "Every Sunday 02:00-04:00 America/Mexico_City. Checks during this window are recorded as maintenance and excluded from downtime calculations per NFR-012."
+  },
+  "statusPage": {
+    "slug": "status",
+    "title": "Compliance Platform Status",
+    "description": "Live and historical availability monitoring",
+    "periods": [
+      { "label": "24 Hours", "hours": 24 },
+      { "label": "7 Days", "days": 7 },
+      { "label": "30 Days", "days": 30 }
+    ],
+    "targetAvailability": 99.0
+  }
+}

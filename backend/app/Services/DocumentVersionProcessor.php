@@ -5,6 +5,8 @@ namespace App\Services;
 use App\Models\DocumentVersion;
 use App\Services\Exceptions\AiServiceEmbeddingFailedException;
 use App\Services\Exceptions\AiServiceExtractionFailedException;
+use App\Services\Exceptions\AiServiceOcrFailedException;
+use App\Services\Exceptions\AiServiceValidationException;
 
 /**
  * Sends a stored document version to the AI service for text extraction and
@@ -39,6 +41,10 @@ class DocumentVersionProcessor
             );
         } catch (AiServiceExtractionFailedException $e) {
             return $this->fail($version, DocumentVersion::extractionFailureMessage($e->getMessage()));
+        } catch (AiServiceOcrFailedException) {
+            return $this->fail($version, DocumentVersion::MESSAGE_OCR_FAILED);
+        } catch (AiServiceValidationException $e) {
+            return $this->fail($version, $e->getMessage());
         } catch (AiServiceEmbeddingFailedException) {
             return $this->fail($version, DocumentVersion::MESSAGE_INDEXING_FAILED);
         }
@@ -52,6 +58,8 @@ class DocumentVersionProcessor
             'status' => DocumentVersion::STATUS_PROCESSED,
             'chunk_count' => (int) ($result['chunks'] ?? 0),
             'page_count' => (int) ($result['pages'] ?? 0),
+            'ocr_used' => (bool) ($result['ocr_used'] ?? false),
+            'ocr_confidence' => isset($result['ocr_confidence']) ? (float) $result['ocr_confidence'] : null,
             'processed_at' => now(),
         ])->save();
 

@@ -1,0 +1,43 @@
+id,question,answerable,expected_status,actual_status,expected_document,cited_documents,relevance_score,source_accurate,has_doc_name,traceable,insufficient_correct,latency_ms,passed
+Q01,¿Cuál es el número de la Licencia Ambiental Única de la planta?,True,answered,answered,licencia_ambiental_unica_2026.pdf,Compliance_Manual_2026.pdf,5.0,True,True,True,,15,True
+Q02,¿Hasta cuándo está vigente la licencia ambiental?,True,answered,answered,licencia_ambiental_unica_2026.pdf,Compliance_Manual_2026.pdf,5.0,True,True,True,,3,True
+Q03,¿Cuántos días pueden permanecer los residuos peligrosos en el almacén temporal?,True,answered,answered,licencia_ambiental_unica_2026.pdf,Compliance_Manual_2026.pdf,5.0,True,True,True,,3,True
+Q04,What is the daytime noise limit at the plant perimeter?,True,answered,answered,licencia_ambiental_unica_2026.pdf,Compliance_Manual_2026.pdf,5.0,True,True,True,,3,True
+Q05,¿Cuál es la fecha límite para solicitar la renovación de la licencia ambiental?,True,answered,answered,licencia_ambiental_unica_2026.pdf,Compliance_Manual_2026.pdf,5.0,True,True,True,,3,True
+Q06,¿Cada cuánto se aplica el cuestionario de riesgos psicosociales?,True,answered,answered,politica_riesgos_psicosociales_v2.pdf,Compliance_Manual_2026.pdf,5.0,True,True,True,,3,True
+Q07,¿Cuántas personas integran el Comité de Entorno Organizacional?,True,answered,answered,politica_riesgos_psicosociales_v2.pdf,Compliance_Manual_2026.pdf,5.0,True,True,True,,4,True
+Q08,¿Cuál es el número de la línea anónima para quejas?,True,answered,answered,politica_riesgos_psicosociales_v2.pdf,Compliance_Manual_2026.pdf,5.0,True,True,True,,3,True
+Q09,How many business days does the company have to answer a workplace-environment complaint?,True,answered,answered,politica_riesgos_psicosociales_v2.pdf,Compliance_Manual_2026.pdf,5.0,True,True,True,,3,True
+Q10,What is the minimum password length?,True,answered,answered,information_security_policy.pdf,Compliance_Manual_2026.pdf,5.0,True,True,True,,3,True
+Q11,When is multi-factor authentication required?,True,answered,answered,information_security_policy.pdf,Compliance_Manual_2026.pdf,5.0,True,True,True,,3,True
+Q12,¿En cuánto tiempo se debe reportar un incidente de seguridad de la información?,True,answered,answered,information_security_policy.pdf,Compliance_Manual_2026.pdf,5.0,True,True,True,,3,True
+Q13,Who owns the information security policy?,True,answered,answered,information_security_policy.pdf,Compliance_Manual_2026.pdf,5.0,True,True,True,,3,True
+Q14,¿Cuántas brigadas de emergencia tiene la empresa?,True,answered,answered,programa_interno_proteccion_civil_2026.pdf,Compliance_Manual_2026.pdf,5.0,True,True,True,,3,True
+Q15,¿En qué meses se hacen los simulacros?,True,answered,answered,programa_interno_proteccion_civil_2026.pdf,Compliance_Manual_2026.pdf,5.0,True,True,True,,3,True
+Q16,Where is assembly point B?,True,answered,answered,programa_interno_proteccion_civil_2026.pdf,Compliance_Manual_2026.pdf,5.0,True,True,True,,3,True
+Q17,How often are critical suppliers audited?,True,answered,answered,supplier_code_of_conduct.pdf,Compliance_Manual_2026.pdf,5.0,True,True,True,,3,True
+Q18,What is the maximum value of a gift an employee can accept from a supplier?,True,answered,answered,supplier_code_of_conduct.pdf + reglamento_interior_trabajo_extracto.docx,Compliance_Manual_2026.pdf,5.0,True,True,True,,4,True
+Q19,¿Cuánto tiempo se conservan los datos personales?,True,answered,answered,aviso_privacidad_integral.pdf,Compliance_Manual_2026.pdf,5.0,True,True,True,,3,True
+Q20,¿A qué correo se envían las solicitudes ARCO?,True,answered,answered,aviso_privacidad_integral.pdf,Compliance_Manual_2026.pdf,5.0,True,True,True,,4,True
+Q21,How many findings did the 2025 internal audit identify?,True,answered,answered,internal_audit_report_2025.pdf,Compliance_Manual_2026.pdf,5.0,True,True,True,,3,True
+Q22,What was finding H-1 of the 2025 audit?,True,answered,answered,internal_audit_report_2025.pdf,Compliance_Manual_2026.pdf,5.0,True,True,True,,4,True
+Q23,¿Cuál fue el nivel general de cumplimiento en la auditoría 2025?,True,answered,answered,internal_audit_report_2025.pdf,Compliance_Manual_2026.pdf,5.0,True,True,True,,4,True
+Q24,¿Hasta cuándo es válido el dictamen de instalaciones eléctricas?,True,answered,answered,dictamen_instalaciones_electricas_escaneado.pdf,Compliance_Manual_2026.pdf,5.0,True,True,True,,4,True
+Q25,¿Qué uso de suelo tiene permitido el predio?,True,answered,answered,constancia_uso_suelo_escaneada.pdf,Compliance_Manual_2026.pdf,5.0,True,True,True,,6,True
+Q26,When is the next fire extinguisher inspection due?,True,answered,answered,fire_extinguisher_inspection_scanned.pdf,Compliance_Manual_2026.pdf,5.0,True,True,True,,4,True
+Q27,¿A qué extensión se llama en caso de incendio?,True,answered,answered,procedimiento_atencion_emergencias.docx,Compliance_Manual_2026.pdf,5.0,True,True,True,,4,True
+Q28,How long are security camera recordings kept?,True,answered,answered,data_retention_disposal_procedure.docx,Compliance_Manual_2026.pdf,5.0,True,True,True,,3,True
+Q29,What are the steps of the lockout/tagout procedure?,True,answered,answered,lockout_tagout_procedure.docx,Compliance_Manual_2026.pdf,5.0,True,True,True,,3,True
+Q30,¿Cuántos extintores se acordó comprar en el comité de seguridad de septiembre?,True,answered,answered,minuta_comite_seguridad_2026_09.txt,Compliance_Manual_2026.pdf,5.0,True,True,True,,3,True
+Q31,How many employees attended the NOM-035 awareness training?,True,answered,answered,training_log_summary_2026.txt,Compliance_Manual_2026.pdf,5.0,True,True,True,,3,True
+Q32,¿Cuál es el teléfono de bomberos en el directorio?,True,answered,answered,directorio_emergencias.txt,Compliance_Manual_2026.pdf,5.0,True,True,True,,3,True
+Q33,¿Cuál es el salario del gerente de mantenimiento?,False,insufficient_information,insufficient_information,,,,,,True,True,2,True
+Q34,How many vacation days do employees get in their first year?,False,insufficient_information,insufficient_information,,,,,,True,True,2,True
+Q35,¿Cuándo vence el permiso de descarga de aguas residuales?,False,insufficient_information,insufficient_information,,,,,,True,True,2,True
+Q36,What is the company's ISO 9001 certificate number?,False,insufficient_information,insufficient_information,,,,,,True,True,2,True
+Q37,¿Quién es el auditor externo de estados financieros?,False,insufficient_information,insufficient_information,,,,,,True,True,2,True
+Q38,What is the speed limit for forklifts inside the warehouse?,False,insufficient_information,insufficient_information,,,,,,True,True,2,True
+Q39,¿Cuál es la política de trabajo remoto?,False,insufficient_information,insufficient_information,,,,,,True,True,2,True
+Q40,How much did the company spend on safety equipment in 2025?,False,insufficient_information,insufficient_information,,,,,,True,True,3,True
+Q41,¿Qué dice la NOM-035 sobre la jornada nocturna?,False,insufficient_information,insufficient_information,,,,,,True,True,2,True
+Q42,Who won the 2026 safety award?,False,insufficient_information,insufficient_information,,,,,,True,True,3,True

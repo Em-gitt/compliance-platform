@@ -35,17 +35,23 @@ class DocumentVersion extends Model
 
     public const MESSAGE_NO_TEXT = 'No text could be extracted from this document.';
 
+    /** Shown in the document detail when OCR fails or produces no text (CMP-26). */
+    public const MESSAGE_OCR_FAILED = 'The scanned document could not be read (OCR failed). Upload a clearer scan or a text-based PDF.';
+
+    /** Shown when a scanned PDF exceeds 100 pages (CMP-26). */
+    public const MESSAGE_SCANNED_PAGE_LIMIT = 'Scanned documents can have up to 100 pages.';
+
     /** Shown in the document detail when FastAPI returns 502 EMBEDDING_FAILED (CMP-29). */
     public const MESSAGE_INDEXING_FAILED = 'The document text could not be indexed for the AI assistant.';
 
     protected $guarded = [];
 
     /**
-     * Keep failure_reason limited to the exact user-facing messages defined in CMP-25.
+     * Keep failure_reason limited to the exact user-facing messages defined in CMP-25 and CMP-26.
      */
     public static function extractionFailureMessage(string $message): string
     {
-        return in_array($message, [self::MESSAGE_DAMAGED_FILE, self::MESSAGE_NO_TEXT], true)
+        return in_array($message, [self::MESSAGE_DAMAGED_FILE, self::MESSAGE_NO_TEXT, self::MESSAGE_OCR_FAILED, self::MESSAGE_SCANNED_PAGE_LIMIT], true)
             ? $message
             : self::MESSAGE_DAMAGED_FILE;
     }
@@ -57,7 +63,18 @@ class DocumentVersion extends Model
 
     protected function casts(): array
     {
-        return ['expiration_date' => 'date', 'is_current' => 'boolean', 'uploaded_at' => 'datetime', 'queued_at' => 'datetime', 'processing_started_at' => 'datetime', 'processed_at' => 'datetime', 'chunk_count' => 'integer', 'page_count' => 'integer'];
+        return [
+            'expiration_date' => 'date',
+            'is_current' => 'boolean',
+            'ocr_used' => 'boolean',
+            'ocr_confidence' => 'float',
+            'uploaded_at' => 'datetime',
+            'queued_at' => 'datetime',
+            'processing_started_at' => 'datetime',
+            'processed_at' => 'datetime',
+            'chunk_count' => 'integer',
+            'page_count' => 'integer',
+        ];
     }
 
     public function document(): BelongsTo

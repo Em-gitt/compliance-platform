@@ -143,7 +143,7 @@ jobs:
           sed -i 's/^AUTH_RATE_LIMIT=.*/AUTH_RATE_LIMIT=100/' .env
           touch database/database.sqlite
           php artisan migrate --force
-          php artisan db:seed --class=DemoSeeder
+          php artisan db:seed
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"

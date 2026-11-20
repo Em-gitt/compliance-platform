@@ -42,27 +42,31 @@ jobs:
           --health-interval 5s
           --health-timeout 5s
           --health-retries 12
-    env:
-      DB_CONNECTION: pgsql
-      DB_HOST: 127.0.0.1
-      DB_PORT: 5432
-      DB_DATABASE: compliance
-      DB_USERNAME: compliance_app
-      DB_PASSWORD: compliance_ci
     steps:
       - uses: actions/checkout@v4
       - uses: shivammathur/setup-php@v2
         with:
           php-version: "8.3"
-          extensions: pdo_pgsql, pgsql, bcmath, sodium
+          extensions: pdo_pgsql, pgsql, pdo_sqlite, sqlite3, bcmath, sodium
           tools: composer:v2
       - run: composer install --no-interaction --prefer-dist
       - run: cp .env.example .env
       - run: php artisan key:generate
       - run: php artisan documents:generate-key
-      - run: php artisan migrate --force
+      - name: Run PostgreSQL Migrations
+        run: php artisan migrate --force
+        env:
+          DB_CONNECTION: pgsql
+          DB_HOST: 127.0.0.1
+          DB_PORT: 5432
+          DB_DATABASE: compliance
+          DB_USERNAME: compliance_app
+          DB_PASSWORD: compliance_ci
       - run: vendor/bin/pint --test
       - run: vendor/bin/pest
+        env:
+          DB_CONNECTION: sqlite
+          DB_DATABASE: ":memory:"
 
   ai-service:
     runs-on: ubuntu-latest

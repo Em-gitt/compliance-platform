@@ -58,7 +58,7 @@ export default function DocumentsListPage() {
     queryKey: ['documents', searchParams.toString()],
     queryFn: async () => {
       const qs = searchParams.toString()
-      const res = await api.get<any>(`/api/documents?${qs ? `${qs}&page=${pageParam}` : `page=${pageParam}`}`)
+      const res = await api.get<DocumentItem[] | { data: DocumentItem[]; total: number }>(`/api/documents?${qs ? `${qs}&page=${pageParam}` : `page=${pageParam}`}`)
       if (Array.isArray(res.data)) {
         return { data: res.data, total: res.data.length }
       }

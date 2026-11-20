@@ -20,25 +20,29 @@ function errorMessage(error: unknown): string {
   return String(error)
 }
 
-// Status dropdown + confirmation dialog (FR-016, CMP-16). Only rendered for Compliance Staff.
-export default function StatusChanger({ requirement }: { requirement: any }) {
-  if (!requirement) return null
+type StatusChangerRequirement = {
+  id: number
+  status?: unknown
+}
 
+// Status dropdown + confirmation dialog (FR-016, CMP-16). Only rendered for Compliance Staff.
+export default function StatusChanger({ requirement }: { requirement?: StatusChangerRequirement | null }) {
   const queryClient = useQueryClient()
   const [target, setTarget] = useState<RequirementStatus | null>(null)
   const [toast, setToast] = useState<{ id: number; message: string } | null>(null)
   const [error, setError] = useState<string | null>(null)
   const confirmButton = useRef<HTMLButtonElement | null>(null)
 
-  const statusCode = typeof requirement?.status === 'object' && requirement?.status !== null
-    ? (requirement.status.code ?? 'pending')
-    : (requirement?.status ?? 'pending')
-  const statusLabel = typeof requirement?.status === 'object' && requirement?.status !== null
-    ? (requirement.status.label ?? labelOf(statusCode))
-    : labelOf(statusCode)
+  const reqStatus = requirement?.status
+  const statusObj = typeof reqStatus === 'object' && reqStatus !== null ? (reqStatus as { code?: RequirementStatus; label?: string }) : null
+  const statusCode = (statusObj?.code ?? (typeof reqStatus === 'string' ? reqStatus : 'pending')) as RequirementStatus
+  const statusLabel = statusObj?.label ?? labelOf(statusCode)
 
   const mutation = useMutation({
-    mutationFn: (status: RequirementStatus) => updateRequirementStatus(requirement.id, status),
+    mutationFn: (status: RequirementStatus) => {
+      if (!requirement?.id) throw new Error('Requirement ID is required')
+      return updateRequirementStatus(requirement.id, status)
+    },
     onSuccess: async (response, status) => {
       setTarget(null)
       setError(null)
@@ -58,6 +62,8 @@ export default function StatusChanger({ requirement }: { requirement: any }) {
   useEffect(() => {
     if (target) confirmButton.current?.focus()
   }, [target])
+
+  if (!requirement) return null
 
   const close = () => setTarget(null)
 

@@ -52,7 +52,7 @@ describe('CitationDrawer (CMP-34)', () => {
         content: 'This facility is authorized to discharge treated wastewater under standard limits.',
         mime_type: 'application/pdf',
       },
-    } as any)
+    } as unknown as ReturnType<typeof api.get>)
 
     render(
       <QueryClientProvider client={queryClient}>

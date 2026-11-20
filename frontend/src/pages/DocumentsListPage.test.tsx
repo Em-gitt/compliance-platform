@@ -46,7 +46,7 @@ describe('DocumentsListPage', () => {
         ],
         total: 1,
       },
-    } as any)
+    } as unknown as ReturnType<typeof api.get>)
 
     render(
       <QueryClientProvider client={queryClient}>
@@ -71,7 +71,7 @@ describe('DocumentsListPage', () => {
         data: [],
         total: 0,
       },
-    } as any)
+    } as unknown as ReturnType<typeof api.get>)
 
     render(
       <QueryClientProvider client={queryClient}>

@@ -63,7 +63,7 @@ describe('Header and Alerts Bell', () => {
         ],
         unread_count: 1,
       },
-    } as any)
+    } as unknown as ReturnType<typeof api.get>)
 
     render(
       <QueryClientProvider client={queryClient}>
@@ -85,7 +85,7 @@ describe('Header and Alerts Bell', () => {
         alerts: [],
         unread_count: 14,
       },
-    } as any)
+    } as unknown as ReturnType<typeof api.get>)
 
     render(
       <QueryClientProvider client={queryClient}>
@@ -120,7 +120,7 @@ describe('Header and Alerts Bell', () => {
         ],
         unread_count: 1,
       },
-    } as any)
+    } as unknown as ReturnType<typeof api.get>)
 
     render(
       <QueryClientProvider client={queryClient}>
@@ -146,7 +146,7 @@ describe('Header and Alerts Bell', () => {
         alerts: [],
         unread_count: 0,
       },
-    } as any)
+    } as unknown as ReturnType<typeof api.get>)
 
     render(
       <QueryClientProvider client={queryClient}>

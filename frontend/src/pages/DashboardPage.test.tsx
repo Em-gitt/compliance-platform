@@ -55,7 +55,7 @@ describe('DashboardPage', () => {
           },
         ],
       },
-    } as any)
+    } as unknown as ReturnType<typeof api.get>)
 
     render(
       <QueryClientProvider client={queryClient}>
@@ -97,7 +97,7 @@ describe('DashboardPage', () => {
         },
         requirements: [],
       },
-    } as any)
+    } as unknown as ReturnType<typeof api.get>)
 
     render(
       <QueryClientProvider client={queryClient}>

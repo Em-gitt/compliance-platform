@@ -16,11 +16,11 @@ type AuthContextValue = {
   setUser: (user: AuthUser | null) => void
   refreshUser: () => Promise<void>
   logout: () => Promise<void>
-  login?: (credentials: any) => Promise<any>
+  login?: (credentials: Record<string, unknown>) => Promise<unknown>
   token?: string | null
 }
 
-const AuthContext = createContext<AuthContextValue | undefined>(undefined)
+export const AuthContext = createContext<AuthContextValue | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null)

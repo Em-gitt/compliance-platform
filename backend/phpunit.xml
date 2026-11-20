@@ -30,7 +30,6 @@
         <env name="SESSION_DRIVER" value="array"/>
         <env name="SESSION_LIFETIME" value="30"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
-        <env name="DOCUMENT_ENCRYPTION_KEY" value="QkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkI="/>
         <env name="AUTH_RATE_LIMIT" value="10"/>
     </php>
 </phpunit>

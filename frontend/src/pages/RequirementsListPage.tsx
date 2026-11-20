@@ -69,7 +69,7 @@ export default function RequirementsListPage() {
     queryKey: ['requirements', searchParams.toString()],
     queryFn: async () => {
       const qs = searchParams.toString()
-      const res = await api.get<any>(`/api/requirements?${qs ? `${qs}&page=${pageParam}` : `page=${pageParam}`}`)
+      const res = await api.get<RequirementItem[] | { data: RequirementItem[]; total: number }>(`/api/requirements?${qs ? `${qs}&page=${pageParam}` : `page=${pageParam}`}`)
       if (Array.isArray(res.data)) {
         return { data: res.data, total: res.data.length }
       }

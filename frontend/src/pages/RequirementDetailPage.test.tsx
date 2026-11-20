@@ -52,9 +52,9 @@ describe('RequirementDetailPage', () => {
               },
             ],
           },
-        } as any
+        } as unknown as ReturnType<typeof api.get>
       }
-      return { data: [] } as any
+      return { data: [] } as unknown as ReturnType<typeof api.get>
     })
 
     render(
@@ -103,7 +103,7 @@ describe('RequirementDetailPage', () => {
               },
             ],
           },
-        } as any
+        } as unknown as ReturnType<typeof api.get>
       }
       if (url.startsWith('/api/documents')) {
         return {
@@ -120,9 +120,9 @@ describe('RequirementDetailPage', () => {
               },
             },
           ],
-        } as any
+        } as unknown as ReturnType<typeof api.get>
       }
-      return { data: [] } as any
+      return { data: [] } as unknown as ReturnType<typeof api.get>
     })
 
     vi.mocked(api.post).mockResolvedValueOnce({
@@ -143,7 +143,7 @@ describe('RequirementDetailPage', () => {
           },
         },
       },
-    } as any)
+    } as unknown as ReturnType<typeof api.get>)
 
     render(
       <QueryClientProvider client={queryClient}>
@@ -210,9 +210,9 @@ describe('RequirementDetailPage', () => {
               },
             ],
           },
-        } as any
+        } as unknown as ReturnType<typeof api.get>
       }
-      return { data: [] } as any
+      return { data: [] } as unknown as ReturnType<typeof api.get>
     })
 
     render(
@@ -261,9 +261,9 @@ describe('RequirementDetailPage', () => {
               },
             ],
           },
-        } as any
+        } as unknown as ReturnType<typeof api.get>
       }
-      return { data: [] } as any
+      return { data: [] } as unknown as ReturnType<typeof api.get>
     })
 
     render(

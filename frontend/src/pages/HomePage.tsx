@@ -13,8 +13,9 @@ export default function HomePage() {
   const canUseAssistant = useCan('use-ai-assistant')
   const canManageUsers = useCan('manage-users')
   const canManageRequirements = useCan('manage-requirements')
+  const canManageOrg = useCan('manage-organization')
   const { data: user } = useCurrentUser()
-  const showRegisterOrg = isAdministrator(user) || useCan('manage-organization')
+  const showRegisterOrg = isAdministrator(user) || canManageOrg
 
   const { data, isLoading } = useQuery<Health>({
     queryKey: ['health'],

@@ -13,7 +13,7 @@ import { canCreateRequirements, useCurrentUser } from '../lib/auth'
 interface DocumentItem {
   id: number
   name: string
-  category: string
+  category: string | { code?: string; name?: string } | null
   access_level: string
   current_version?: {
     id: number
@@ -26,7 +26,7 @@ interface DocumentItem {
 interface RequiredDocumentItem {
   id: number
   name: string
-  category: any
+  category: string | { code?: string; name?: string } | null
   document_id: number | null
   status: 'provided' | 'missing' | 'processing' | 'expired'
   badge: 'Provided' | 'Missing Document' | 'Processing'
@@ -41,7 +41,7 @@ interface RequirementDetail {
   description: string
   regulation: string
   deadline: string
-  status: any
+  status: string | { code?: string; label?: string } | null
   responsible_user?: { id: number; name: string } | null
   missing_documents_count?: number
   all_documents_provided?: boolean
@@ -67,8 +67,10 @@ export default function RequirementDetailPage() {
         if (res.data?.data?.name || res.data?.name) {
           return res.data?.data ?? res.data
         }
-      } catch {}
-      const res = await api.get<any>(`/api/requirements/${id}`)
+      } catch {
+        // Fallback to legacy endpoint if compliance-requirements route fails
+      }
+      const res = await api.get<{ data?: RequirementDetail } & RequirementDetail>(`/api/requirements/${id}`)
       return res.data?.data ?? res.data
     },
   })
@@ -234,11 +236,11 @@ export default function RequirementDetailPage() {
                   <dt className="text-sm font-medium text-gray-600">{L.required_documents}</dt>
                   <dd className="col-span-2 text-sm">
                     <ul className="space-y-1">
-                      {(requirement.required_documents ?? []).map((document: any) => (
+                      {(requirement.required_documents ?? []).map((document: RequiredDocumentItem) => (
                         <li key={document.id}>
                           {document.name}{' '}
                           <span className="text-gray-500">
-                            ({typeof document.category === 'object' ? document.category?.name : document.category})
+                            ({typeof document.category === 'object' && document.category !== null ? (document.category as { name?: string }).name : String(document.category ?? '')})
                           </span>
                         </li>
                       ))}

@@ -5,9 +5,10 @@ const STYLES: Record<string, string> = {
   overdue: 'bg-red-100 text-red-800 ring-red-600/30',
 }
 
-export default function StatusBadge(props: { code?: string; label?: string; status?: any }) {
-  const code = props.code ?? (typeof props.status === 'object' ? props.status?.code : props.status) ?? 'pending'
-  const label = props.label ?? (typeof props.status === 'object' ? props.status?.label : (props.status ? String(props.status) : 'Pending'))
+export default function StatusBadge(props: { code?: string; label?: string; status?: unknown }) {
+  const statusObj = typeof props.status === 'object' && props.status !== null ? (props.status as { code?: string; label?: string }) : null
+  const code = props.code ?? statusObj?.code ?? (typeof props.status === 'string' ? props.status : 'pending')
+  const label = props.label ?? statusObj?.label ?? (props.status ? String(props.status) : 'Pending')
 
   return (
     <span

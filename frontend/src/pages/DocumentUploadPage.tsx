@@ -42,7 +42,17 @@ export default function DocumentUploadPage({ currentUserRole }: DocumentUploadPa
     return null
   }
 
-  const onDrop = (acceptedFiles: File[]) => {
+  const onDrop = (acceptedFiles: File[], fileRejections: Array<{ errors: Array<{ code: string }> }> = []) => {
+    if (fileRejections.length > 0) {
+      const isOversized = fileRejections[0].errors.some((err) => err.code === 'file-too-large')
+      setErrorMessage(
+        isOversized
+          ? 'The file exceeds the 25 MB limit (26,214,400 bytes).'
+          : 'Only PDF, DOCX and TXT files are allowed.'
+      )
+      setFile(null)
+      return
+    }
     if (acceptedFiles.length === 0) return
     const chosenFile = acceptedFiles[0]
     const error = validateFile(chosenFile)
@@ -331,21 +341,27 @@ export default function DocumentUploadPage({ currentUserRole }: DocumentUploadPa
               <option value="all_staff">All staff</option>
               <option value="compliance_only">Compliance only</option>
             </select>
-            <div className="hidden">
-              <input
-                type="radio"
-                id="access-all-staff"
-                name="access_level_radio"
-                checked={accessLevel === 'all_staff'}
-                onChange={() => setAccessLevel('all_staff')}
-              />
-              <input
-                type="radio"
-                id="access-compliance-only"
-                name="access_level_radio"
-                checked={accessLevel === 'compliance_only'}
-                onChange={() => setAccessLevel('compliance_only')}
-              />
+            <div className="flex gap-4 mt-2">
+              <label className="flex items-center gap-1.5 text-xs text-slate-600 cursor-pointer">
+                <input
+                  type="radio"
+                  id="access-all-staff"
+                  name="access_level_radio"
+                  checked={accessLevel === 'all_staff'}
+                  onChange={() => setAccessLevel('all_staff')}
+                />
+                All staff
+              </label>
+              <label className="flex items-center gap-1.5 text-xs text-slate-600 cursor-pointer">
+                <input
+                  type="radio"
+                  id="access-compliance-only"
+                  name="access_level_radio"
+                  checked={accessLevel === 'compliance_only'}
+                  onChange={() => setAccessLevel('compliance_only')}
+                />
+                Compliance only
+              </label>
             </div>
           </div>
 

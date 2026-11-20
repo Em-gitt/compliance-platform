@@ -114,6 +114,8 @@ jobs:
           composer install --no-interaction --prefer-dist
           cp .env.example .env
           php artisan key:generate
+          php artisan documents:generate-key
+          sed -i 's/^SESSION_SECURE_COOKIE=true/SESSION_SECURE_COOKIE=false/' .env
           touch database/database.sqlite
           php artisan migrate --force
           php artisan db:seed --class=DemoSeeder

@@ -583,7 +583,7 @@ def ask_question(
                 ef_search=rag_config.retrieval.hnsw_ef_search,
             )
     except Exception:
-        if os.getenv("APP_ENV", "local") in ("testing", "local") and not os.getenv("DATABASE_URL"):
+        if os.getenv("APP_ENV", "local") in ("testing", "local"):
             try:
                 candidates = chunk_store.find_similar_chunks(
                     None,

@@ -63,7 +63,15 @@ jobs:
           DB_USERNAME: compliance_app
           DB_PASSWORD: compliance_ci
       - run: vendor/bin/pint --test
-      - run: vendor/bin/pest
+      - name: Run vendor/bin/pest
+        run: |
+          vendor/bin/pest --colors=never 2>&1 | tee pest.log || {
+            echo "### Pest Failure" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            tail -n 120 pest.log >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            exit 1
+          }
         env:
           DB_CONNECTION: sqlite
           DB_DATABASE: ":memory:"
@@ -102,7 +110,15 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends tesseract-ocr tesseract-ocr-spa tesseract-ocr-eng poppler-utils
       - run: pip install -r requirements.txt
       - run: ruff check .
-      - run: pytest
+      - name: Run pytest
+        run: |
+          pytest -vv 2>&1 | tee pytest.log || {
+            echo "### Pytest Failure" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            tail -n 120 pytest.log >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            exit 1
+          }
 
   e2e:
     name: Playwright E2E Tests (CMP-45)

@@ -133,7 +133,7 @@ it('keeps health public and rate limits login attempts with the exact message', 
 
     $this->withHeaders([
         'X-Forwarded-For' => $ipAddress,
-        'X-Forwarded-Proto' => 'http',
+        'X-Forwarded-Proto' => 'https',
     ]);
 
     for ($attempt = 0; $attempt < 10; $attempt++) {
@@ -145,3 +145,24 @@ it('keeps health public and rate limits login attempts with the exact message', 
         ->assertStatus(429)
         ->assertJsonPath('message', fn (string $message): bool => (bool) preg_match('/^Too many sign-in attempts\\. Try again in \\d+ seconds\\.$/', $message));
 });
+
+it('strictly ignores AUTH_RATE_LIMIT in production environment', function (): void {
+    config(['auth.login_rate_limit' => 100]);
+
+    app()->detectEnvironment(fn () => 'production');
+
+    $request = \Illuminate\Http\Request::create('/api/auth/login', 'POST', [], [], [], ['REMOTE_ADDR' => '1.2.3.4']);
+    $limiter = \Illuminate\Support\Facades\RateLimiter::limiter('login');
+    $limit = $limiter($request);
+
+    expect($limit)->toBeInstanceOf(\Illuminate\Cache\RateLimiting\Limit::class)
+        ->and($limit->maxAttempts)->toBe(10);
+
+    // In testing/local environment, it respects the configured limit
+    app()->detectEnvironment(fn () => 'testing');
+    $limitTesting = $limiter($request);
+    expect($limitTesting->maxAttempts)->toBe(100);
+
+    config(['auth.login_rate_limit' => 10]);
+});
+

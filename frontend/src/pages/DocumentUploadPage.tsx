@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { useDropzone } from 'react-dropzone'
+import { useDropzone, type FileRejection } from 'react-dropzone'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import { api } from '../lib/api'
@@ -42,7 +42,7 @@ export default function DocumentUploadPage({ currentUserRole }: DocumentUploadPa
     return null
   }
 
-  const onDrop = (acceptedFiles: File[], fileRejections: Array<{ errors: Array<{ code: string }> }> = []) => {
+  const onDrop = (acceptedFiles: File[], fileRejections: FileRejection[] = []) => {
     if (fileRejections.length > 0) {
       const isOversized = fileRejections[0].errors.some((err) => err.code === 'file-too-large')
       setErrorMessage(

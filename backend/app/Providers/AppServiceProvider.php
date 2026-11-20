@@ -81,6 +81,20 @@ class AppServiceProvider extends ServiceProvider
         DocumentVersion::observe(DocumentVersionObserver::class);
         RequiredDocument::observe(RequiredDocumentObserver::class);
 
+        // Brute-force protection for authentication (10 attempts per minute per IP).
+        // In production, strictly enforce 10 attempts to guarantee security.
+        // In non-production environments (local/testing), allow configuring the throttle limit
+        // via AUTH_RATE_LIMIT for high-frequency E2E suites (defaulting to 10).
+        RateLimiter::for('login', function (Request $request) {
+            if ($this->app->environment('production')) {
+                return Limit::perMinute(10)->by($request->ip());
+            }
+
+            $maxAttempts = (int) config('auth.login_rate_limit', env('AUTH_RATE_LIMIT', 10));
+
+            return Limit::perMinute($maxAttempts)->by($request->ip());
+        });
+
         // CMP-33: 20 questions per minute per user.
         RateLimiter::for('assistant-questions', fn (Request $request) => Limit::perMinute(20)
             ->by('assistant:'.$request->user()?->id)

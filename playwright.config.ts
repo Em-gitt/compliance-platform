@@ -20,11 +20,27 @@ export default defineConfig({
   ],
   webServer: [
     {
+      command: 'if [ -d .venv ]; then .venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8001; else python3 -m uvicorn app.main:app --host 127.0.0.1 --port 8001; fi',
+      cwd: 'ai-service',
+      url: 'http://127.0.0.1:8001/openapi.json',
+      reuseExistingServer: !process.env.CI,
+      timeout: 120_000,
+      env: {
+        APP_ENV: 'testing',
+        LLM_PROVIDER: 'mock',
+        EMBEDDING_PROVIDER: 'mock',
+        AI_SERVICE_TOKEN: 'compliance_ai_secret_token',
+      },
+    },
+    {
       command: 'php artisan serve --host=127.0.0.1 --port=8000',
       cwd: 'backend',
       url: 'http://127.0.0.1:8000/sanctum/csrf-cookie',
       reuseExistingServer: !process.env.CI,
       timeout: 120_000,
+      env: {
+        AUTH_RATE_LIMIT: '100',
+      },
     },
     {
       command: 'npm run dev',

@@ -133,7 +133,7 @@ export default function RequirementsListPage() {
                 type="text"
                 value={nameInput}
                 onChange={(e) => setNameInput(e.target.value)}
-                placeholder="Search name..."
+                placeholder="Search by requirement name..."
                 className="w-full rounded-lg border border-slate-300 p-2 text-xs focus:border-indigo-500 focus:outline-none"
               />
             </div>
@@ -214,48 +214,59 @@ export default function RequirementsListPage() {
         )}
 
         {!isLoading && requirements.length > 0 && (
-          <div className="grid gap-3">
-            {requirements.map((req) => (
-              <div
-                key={req.id}
-                className="flex items-center justify-between rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition hover:shadow-md"
-              >
-                <div className="space-y-1">
-                  <div className="flex items-center gap-3">
-                    <Link
-                      to={`/requirements/${req.id}`}
-                      className="font-semibold text-slate-900 hover:text-indigo-600"
-                    >
-                      {req.name}
-                    </Link>
-                    <span className="rounded bg-slate-100 px-2 py-0.5 text-xs text-slate-600 font-medium">
-                      {req.regulation}
-                    </span>
-                  </div>
-                  <div className="text-xs text-slate-500">
-                    Deadline: {new Date(req.deadline).toLocaleDateString()}
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-4">
-                  <span
-                    className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
-                      req.all_documents_provided
-                        ? 'bg-emerald-100 text-emerald-800'
-                        : 'bg-red-100 text-red-800'
-                    }`}
-                  >
-                    {req.missing_documents_label}
-                  </span>
-                  <Link
-                    to={`/requirements/${req.id}`}
-                    className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
-                  >
-                    View
-                  </Link>
-                </div>
-              </div>
-            ))}
+          <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
+            <table className="w-full text-left text-sm text-slate-600">
+              <thead className="border-b border-slate-200 bg-slate-50 text-xs font-semibold uppercase text-slate-500">
+                <tr>
+                  <th className="px-6 py-3">Requirement</th>
+                  <th className="px-6 py-3">Regulation</th>
+                  <th className="px-6 py-3">Deadline</th>
+                  <th className="px-6 py-3">Status / Missing Documents</th>
+                  <th className="px-6 py-3 text-right">Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-200">
+                {requirements.map((req) => (
+                  <tr key={req.id} className="hover:bg-slate-50 transition-colors">
+                    <td className="px-6 py-4">
+                      <Link
+                        to={`/requirements/${req.id}`}
+                        className="font-semibold text-slate-900 hover:text-indigo-600"
+                      >
+                        {req.name}
+                      </Link>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="rounded bg-slate-100 px-2 py-0.5 text-xs text-slate-600 font-medium">
+                        {req.regulation}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-xs text-slate-500">
+                      {new Date(req.deadline).toLocaleDateString()}
+                    </td>
+                    <td className="px-6 py-4">
+                      <span
+                        className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
+                          req.all_documents_provided
+                            ? 'bg-emerald-100 text-emerald-800'
+                            : 'bg-red-100 text-red-800'
+                        }`}
+                      >
+                        {req.missing_documents_label}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <Link
+                        to={`/requirements/${req.id}`}
+                        className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
+                      >
+                        View
+                      </Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
       </div>

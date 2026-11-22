@@ -103,6 +103,9 @@ export default function Header() {
             <Link to="/requirements" className="hover:text-slate-900 transition-colors">
               Requirements
             </Link>
+            <Link to="/documents" className="hover:text-slate-900 transition-colors">
+              Documents
+            </Link>
             <Link to="/assistant" className="hover:text-slate-900 transition-colors">
               AI Assistant
             </Link>

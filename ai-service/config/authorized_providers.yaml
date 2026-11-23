@@ -21,4 +21,4 @@ providers:
   - name: mock
     hosts: []
     purposes: [llm, embeddings]
-    allowed_envs: [testing, loadtest]
+    allowed_envs: [testing, loadtest, staging, production, local]

@@ -13,11 +13,22 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 WORKDIR /var/www/html
 
+# Capa de dependencias para aprovechar cache de Docker
 COPY composer.json composer.lock ./
 RUN composer install --no-interaction --prefer-dist --no-scripts --no-autoloader
 
+# Copiar el código fuente completo
+COPY . /var/www/html
+
+# Optimizar autoloader y ajustar permisos
+RUN composer dump-autoload --optimize --no-dev \
+    && mkdir -p storage/framework/cache/data storage/framework/sessions storage/framework/views storage/logs bootstrap/cache \
+    && chmod -R 777 storage bootstrap/cache
+
 COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
-ENTRYPOINT ["sh", "/usr/local/bin/entrypoint.sh"]
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 
 EXPOSE 8000
-CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8000", "--no-reload"]
+CMD ["serve-and-work"]

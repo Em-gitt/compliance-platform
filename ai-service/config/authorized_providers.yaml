@@ -11,6 +11,9 @@ providers:
   - name: local-embeddings
     hosts: []            # in-process, no network
     purposes: [embeddings]
+  - name: cloudflare-ai
+    hosts: [api.cloudflare.com]
+    purposes: [embeddings]
   - name: ollama
     hosts: [ollama]      # internal Docker network only
     purposes: [llm]

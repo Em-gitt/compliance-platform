@@ -244,10 +244,9 @@ def _check_simulation(simulate_header: str | None = None) -> None:
             "model": HealthResponse,
             "description": "Service is healthy and ready to accept requests.",
         },
-        401: COMMON_ERROR_RESPONSES[401],
     },
 )
-def health(_: Annotated[str, Depends(verify_internal_token)]) -> HealthResponse:
+def health() -> HealthResponse:
     return HealthResponse(
         status="ok",
         vector_store="ok",

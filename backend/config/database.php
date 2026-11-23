@@ -151,21 +151,51 @@ return [
         ],
 
         'default' => [
-            'url' => env('REDIS_URL'),
+            'url' => (function () {
+                $raw = env('REDIS_URL', env('UPSTASH_REDIS_URL'));
+                if (! $raw) return null;
+                $clean = trim(trim($raw), '<>"\'');
+                if (str_starts_with($clean, 'redis://') && str_contains($clean, 'upstash.io')) {
+                    $clean = 'rediss://' . substr($clean, 8);
+                }
+                return $clean;
+            })(),
             'host' => env('REDIS_HOST', '127.0.0.1'),
             'username' => env('REDIS_USERNAME'),
             'password' => env('REDIS_PASSWORD'),
             'port' => env('REDIS_PORT', '6379'),
             'database' => env('REDIS_DB', '0'),
+            'scheme' => env('REDIS_SCHEME', null),
+            'context' => [
+                'stream' => [
+                    'verify_peer' => env('REDIS_VERIFY_PEER', false),
+                    'verify_peer_name' => env('REDIS_VERIFY_PEER_NAME', false),
+                ],
+            ],
         ],
 
         'cache' => [
-            'url' => env('REDIS_URL'),
+            'url' => (function () {
+                $raw = env('REDIS_URL', env('UPSTASH_REDIS_URL'));
+                if (! $raw) return null;
+                $clean = trim(trim($raw), '<>"\'');
+                if (str_starts_with($clean, 'redis://') && str_contains($clean, 'upstash.io')) {
+                    $clean = 'rediss://' . substr($clean, 8);
+                }
+                return $clean;
+            })(),
             'host' => env('REDIS_HOST', '127.0.0.1'),
             'username' => env('REDIS_USERNAME'),
             'password' => env('REDIS_PASSWORD'),
             'port' => env('REDIS_PORT', '6379'),
             'database' => env('REDIS_CACHE_DB', '1'),
+            'scheme' => env('REDIS_SCHEME', null),
+            'context' => [
+                'stream' => [
+                    'verify_peer' => env('REDIS_VERIFY_PEER', false),
+                    'verify_peer_name' => env('REDIS_VERIFY_PEER_NAME', false),
+                ],
+            ],
         ],
 
     ],

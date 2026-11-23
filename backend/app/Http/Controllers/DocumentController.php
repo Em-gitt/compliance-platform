@@ -14,6 +14,7 @@ use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use Throwable;
@@ -241,6 +242,12 @@ class DocumentController extends Controller
                     ->onQueue('documents')
                     ->afterCommit();
             } catch (Throwable $e) {
+                Log::error('ProcessDocumentVersion dispatch failed: ' . $e->getMessage(), [
+                    'exception' => $e,
+                    'document_id' => $document->id,
+                    'version_id' => $version->id,
+                ]);
+
                 $version->forceFill([
                     'status' => DocumentVersion::STATUS_PROCESSING_FAILED,
                     'failure_reason' => 'queue_unavailable',
@@ -353,6 +360,12 @@ class DocumentController extends Controller
                     ->onQueue('documents')
                     ->afterCommit();
             } catch (Throwable $e) {
+                Log::error('ProcessDocumentVersion dispatch failed: ' . $e->getMessage(), [
+                    'exception' => $e,
+                    'document_id' => $document->id,
+                    'version_id' => $version->id,
+                ]);
+
                 $version->forceFill([
                     'status' => DocumentVersion::STATUS_PROCESSING_FAILED,
                     'failure_reason' => 'queue_unavailable',

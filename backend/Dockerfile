@@ -20,10 +20,10 @@ RUN composer install --no-interaction --prefer-dist --no-scripts --no-autoloader
 # Copiar el código fuente completo
 COPY . /var/www/html
 
-# Optimizar autoloader y ajustar permisos
-RUN composer dump-autoload --optimize --no-dev \
-    && mkdir -p storage/framework/cache/data storage/framework/sessions storage/framework/views storage/logs bootstrap/cache \
-    && chmod -R 777 storage bootstrap/cache
+# Crear directorios de framework, dar permisos y optimizar autoloader sin ejecutar scripts aún
+RUN mkdir -p storage/framework/cache/data storage/framework/sessions storage/framework/views storage/logs bootstrap/cache \
+    && chmod -R 777 storage bootstrap/cache \
+    && composer dump-autoload --optimize --no-dev --no-scripts
 
 COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh

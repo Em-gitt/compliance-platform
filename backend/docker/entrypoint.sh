@@ -12,7 +12,8 @@ if [ "$1" != "serve-and-work" ] && [ $# -gt 0 ]; then
     exec "$@"
 fi
 
-# Limpieza de caché de configuración previa para garantizar lectura de variables de entorno
+# Descubrimiento de paquetes y limpieza de caché con variables de entorno presentes
+php artisan package:discover --ansi || true
 php artisan config:clear || true
 php artisan route:clear || true
 

@@ -12,7 +12,10 @@ if [ "$1" != "serve-and-work" ] && [ $# -gt 0 ]; then
     exec "$@"
 fi
 
-# Descubrimiento de paquetes y limpieza de caché con variables de entorno presentes
+# Eliminar cualquier archivo de cache residual antes de descubrir paquetes
+rm -f bootstrap/cache/*.php
+
+# Descubrimiento de paquetes y limpieza de caché con variables de entorno de producción
 php artisan package:discover --ansi || true
 php artisan config:clear || true
 php artisan route:clear || true

@@ -13,15 +13,16 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 WORKDIR /var/www/html
 
-# Capa de dependencias para aprovechar cache de Docker
+# Capa de dependencias de producción para aprovechar cache de Docker
 COPY composer.json composer.lock ./
-RUN composer install --no-interaction --prefer-dist --no-scripts --no-autoloader
+RUN composer install --no-interaction --prefer-dist --no-scripts --no-autoloader --no-dev
 
 # Copiar el código fuente completo
 COPY . /var/www/html
 
-# Crear directorios de framework, dar permisos y optimizar autoloader sin ejecutar scripts aún
-RUN mkdir -p storage/framework/cache/data storage/framework/sessions storage/framework/views storage/logs bootstrap/cache \
+# Limpiar caches residuales, dar permisos y optimizar autoloader de producción
+RUN rm -f bootstrap/cache/*.php \
+    && mkdir -p storage/framework/cache/data storage/framework/sessions storage/framework/views storage/logs bootstrap/cache \
     && chmod -R 777 storage bootstrap/cache \
     && composer dump-autoload --optimize --no-dev --no-scripts
 

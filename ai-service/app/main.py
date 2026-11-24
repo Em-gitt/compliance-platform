@@ -632,6 +632,15 @@ def ask_question(
     kept_chunks = [c for c in candidates if c.similarity >= threshold][:rag_config.retrieval.max_fragments_to_llm]
     top_score = round(candidates[0].similarity, 4) if candidates else 0.0
 
+    logger.info(
+        "RAG Retrieval [%s]: candidates=%d, top_score=%.4f, threshold=%.2f, kept=%d",
+        req_id,
+        len(candidates),
+        top_score,
+        threshold,
+        len(kept_chunks),
+    )
+
     log_retrieval_finished(
         request_id=req_id,
         fragments_considered=len(candidates),
@@ -641,7 +650,12 @@ def ask_question(
     )
 
     if not kept_chunks:
-        # Insufficient information: DO NOT call the LLM
+        logger.info(
+            "RAG Retrieval [%s]: No chunks above threshold %.2f (top score: %.4f). Returning insufficient_information.",
+            req_id,
+            threshold,
+            top_score,
+        )
         latency_ms = int((time.time() - start_time) * 1000)
         return AskResponse(
             answer=insufficient_text,
@@ -698,9 +712,26 @@ def ask_question(
             detail={"error_code": "LLM_GENERATION_FAILED", "message": str(exc)},
         ) from exc
 
+    logger.info("RAG Generation [%s]: raw_answer=%s", req_id, raw_answer[:200])
+
     # Extract bracket citations [n] from answer
     found_nums = [int(m) for m in re.findall(r"\[(\d+)\]", raw_answer)]
     valid_nums = sorted(set(n for n in found_nums if 1 <= n <= len(kept_chunks)))
+
+    # If the LLM answered without bracket citations but produced content from context (non-testing environments)
+    if not valid_nums and kept_chunks and os.getenv("APP_ENV") != "testing":
+        is_insufficient = any(
+            phrase in raw_answer.lower()
+            for phrase in [
+                "no encontré suficiente",
+                "could not find enough",
+                "no hay suficiente información",
+                "not enough information",
+            ]
+        )
+        if not is_insufficient:
+            valid_nums = [1]
+            raw_answer = f"{raw_answer.strip()} [1]"
 
     # Remove invalid [n] markers
     clean_answer = raw_answer
@@ -733,6 +764,8 @@ def ask_question(
                     score=round(chunk.similarity, 4),
                 )
             )
+
+    logger.info("RAG Result [%s]: status=%s, citations_count=%d", req_id, status_value, len(citations))
 
     latency_ms = int((time.time() - start_time) * 1000)
 

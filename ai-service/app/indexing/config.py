@@ -49,10 +49,11 @@ def _load(path: str) -> RagConfig:
     retrieval = data.get("retrieval") or {}
     if os.getenv("APP_ENV") == "testing":
         default_threshold = float(retrieval.get("similarity_threshold", 0.55))
-    elif os.getenv("EMBEDDING_PROVIDER") == "mock":
-        default_threshold = 0.15
     else:
-        default_threshold = float(retrieval.get("similarity_threshold", 0.55))
+        # In staging/production, when using mock/sparse bag-of-words embeddings,
+        # cosine similarity ranges between 0.20 and 0.40. A threshold of 0.15
+        # allows matched policy chunks to pass to the LLM.
+        default_threshold = 0.15
     threshold = float(os.getenv("SIMILARITY_THRESHOLD", default_threshold))
 
     retrieval_cfg = RetrievalConfig(

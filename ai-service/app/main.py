@@ -1,3 +1,4 @@
+import logging
 import os
 import re
 import time
@@ -9,6 +10,8 @@ from fastapi import Depends, FastAPI, File, Form, Header, HTTPException, Path, R
 from fastapi.concurrency import run_in_threadpool
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+
+logger = logging.getLogger("ai.main")
 
 from app.extraction import (
     DAMAGED_FILE_MESSAGE,
@@ -114,6 +117,17 @@ async def http_exception_handler(request: Request, exc: HTTPException) -> JSONRe
     return JSONResponse(
         status_code=exc.status_code,
         content={"error_code": code, "message": str(exc.detail)},
+    )
+
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+    import traceback
+    tb = traceback.format_exc()
+    logger.error("Unhandled server exception: %s\n%s", exc, tb)
+    return JSONResponse(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        content={"error_code": "INTERNAL_SERVER_ERROR", "message": str(exc)},
     )
 
 

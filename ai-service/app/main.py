@@ -689,6 +689,8 @@ def ask_question(
             ],
             request_id=req_id,
         )
+    except ProviderNotAuthorizedError:
+        raise
     except Exception as exc:
         logger.error(f"Error in generate_answer: {exc}", exc_info=True)
         raise HTTPException(

@@ -47,7 +47,12 @@ def _load(path: str) -> RagConfig:
     chunking = data["chunking"]
     embedding = data.get("embedding") or {}
     retrieval = data.get("retrieval") or {}
-    default_threshold = 0.15 if os.getenv("EMBEDDING_PROVIDER") == "mock" else float(retrieval.get("similarity_threshold", 0.55))
+    if os.getenv("APP_ENV") == "testing":
+        default_threshold = float(retrieval.get("similarity_threshold", 0.55))
+    elif os.getenv("EMBEDDING_PROVIDER") == "mock":
+        default_threshold = 0.15
+    else:
+        default_threshold = float(retrieval.get("similarity_threshold", 0.55))
     threshold = float(os.getenv("SIMILARITY_THRESHOLD", default_threshold))
 
     retrieval_cfg = RetrievalConfig(

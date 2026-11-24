@@ -667,13 +667,20 @@ def ask_question(
     context_str = "\n\n".join(context_lines)
     user_prompt = f"Context fragments:\n{context_str}\n\nQuestion: {payload.question}"
 
-    raw_answer = generate_answer(
-        [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_prompt},
-        ],
-        request_id=req_id,
-    )
+    try:
+        raw_answer = generate_answer(
+            [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
+            request_id=req_id,
+        )
+    except Exception as exc:
+        logger.error(f"Error in generate_answer: {exc}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail={"error_code": "LLM_GENERATION_FAILED", "message": str(exc)},
+        ) from exc
 
     # Extract bracket citations [n] from answer
     found_nums = [int(m) for m in re.findall(r"\[(\d+)\]", raw_answer)]

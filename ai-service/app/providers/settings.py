@@ -32,14 +32,25 @@ class ProviderSettings:
 def get_settings() -> ProviderSettings:
     """Read provider settings from the environment (ADR-010)."""
     llm_provider = os.getenv("LLM_PROVIDER", "groq").strip()
+    model_env = os.getenv("LLM_MODEL", "").strip()
+    if not model_env or model_env == "openai/gpt-oss-120b":
+        if llm_provider == "groq":
+            llm_model = "llama-3.3-70b-versatile"
+        elif llm_provider == "openai":
+            llm_model = "gpt-4o-mini"
+        else:
+            llm_model = "openai/gpt-oss-120b"
+    else:
+        llm_model = model_env
+
     return ProviderSettings(
         app_env=os.getenv("APP_ENV", "local").strip(),
         llm_provider=llm_provider,
         embedding_provider=os.getenv("EMBEDDING_PROVIDER", "local-embeddings").strip(),
         llm_base_url=os.getenv("LLM_BASE_URL") or DEFAULT_LLM_BASE_URLS.get(llm_provider),
-        llm_model=os.getenv("LLM_MODEL", "openai/gpt-oss-120b"),
-        groq_api_key=os.getenv("GROQ_API_KEY") or None,
-        openai_api_key=os.getenv("OPENAI_API_KEY") or None,
+        llm_model=llm_model,
+        groq_api_key=os.getenv("GROQ_API_KEY", "").strip() or None,
+        openai_api_key=os.getenv("OPENAI_API_KEY", "").strip() or None,
     )
 
 

@@ -592,6 +592,7 @@ def ask_question(
                 organization_id=payload.organization_id,
                 allowed_document_ids=payload.allowed_document_ids,
                 query_embedding=query_embedding,
+                query_text=payload.question,
                 limit=rag_config.retrieval.candidates,
                 ef_search=rag_config.retrieval.hnsw_ef_search,
             )

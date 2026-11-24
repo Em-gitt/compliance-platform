@@ -1,10 +1,54 @@
 """document_chunks persistence with full traceability (NFR-019, ADR-012)."""
 
+import re
 from dataclasses import dataclass
 
 import psycopg
 
 from app.indexing.chunking import Chunk
+
+SYNONYMS = {
+    "auditoria": ["audit", "auditoria"],
+    "auditoría": ["audit", "auditoria"],
+    "hallazgo": ["finding", "hallazgo"],
+    "hallazgos": ["finding", "findings", "hallazgo", "hallazgos"],
+    "regalo": ["gift", "regalo"],
+    "regalos": ["gift", "gifts", "regalo", "regalos"],
+    "gift": ["gift", "gifts"],
+    "gifts": ["gift", "gifts"],
+    "proveedor": ["supplier", "vendor"],
+    "proveedores": ["supplier", "suppliers", "vendor"],
+    "supplier": ["supplier", "suppliers"],
+    "suppliers": ["supplier", "suppliers"],
+    "conducta": ["conduct"],
+    "riesgo": ["risk", "riesgo"],
+    "riesgos": ["risk", "risks", "riesgo", "riesgos"],
+    "psicosocial": ["psychosocial", "psicosocial"],
+    "psicosociales": ["psychosocial", "psicosocial", "psicosociales"],
+    "politica": ["policy", "politica"],
+    "política": ["policy", "politica"],
+    "politicas": ["policy", "policies", "politicas"],
+    "políticas": ["policy", "policies", "politicas"],
+}
+
+STOPWORDS = {
+    "what", "are", "the", "is", "on", "for", "in", "at", "to", "a", "an",
+    "de", "la", "el", "en", "para", "por", "que", "hubo", "como", "cual", "cuales", "del"
+}
+
+
+def extract_keywords(text: str | None) -> list[str]:
+    if not text:
+        return []
+    words = re.findall(r"\w+", text.lower())
+    terms = set()
+    for w in words:
+        if w in STOPWORDS or len(w) <= 2:
+            continue
+        terms.add(w)
+        if w in SYNONYMS:
+            terms.update(SYNONYMS[w])
+    return list(terms)
 
 
 class VersionNotIndexableError(Exception):
@@ -119,19 +163,39 @@ def find_similar_chunks(
     organization_id: int,
     allowed_document_ids: list[int],
     query_embedding: list[float],
+    query_text: str | None = None,
     limit: int = 8,
     ef_search: int = 40,
 ) -> list[RetrievedChunk]:
-    """Reference retrieval query from ADR-012 (current versions of allowed documents only)."""
+    """Reference retrieval query from ADR-012 with hybrid keyword expansion."""
     if conn is None or not allowed_document_ids:
         return []
+
+    kws = extract_keywords(query_text)
+    kw_conditions = []
+    params = {
+        "query": vector_literal(query_embedding),
+        "organization_id": organization_id,
+        "allowed": list(allowed_document_ids),
+        "limit": limit,
+    }
+    for i, kw in enumerate(kws):
+        param_name = f"kw_{i}"
+        kw_conditions.append(f"c.content ILIKE %({param_name})s")
+        params[param_name] = f"%{kw}%"
+
+    kw_boost_sql = (
+        " + ".join([f"(CASE WHEN {cond} THEN 0.25 ELSE 0.0 END)" for cond in kw_conditions])
+        if kw_conditions
+        else "0.0"
+    )
 
     with conn.transaction():
         conn.execute(f"SET LOCAL hnsw.ef_search = {int(ef_search)}")
         rows = conn.execute(
-            """
+            f"""
             SELECT c.id, c.document_id, c.document_version_id, c.chunk_index, c.content, c.page_start, c.page_end, c.section,
-                   1 - (c.embedding <=> %(query)s::vector) AS similarity,
+                   (GREATEST(1 - (c.embedding <=> %(query)s::vector), 0.0) + ({kw_boost_sql}))::float AS similarity,
                    COALESCE(d.name, 'Document') AS document_name,
                    COALESCE(v.version_label, '1.0') AS version_label
             FROM document_chunks c
@@ -140,14 +204,9 @@ def find_similar_chunks(
             WHERE c.organization_id = %(organization_id)s
               AND c.document_id = ANY(%(allowed)s)
               AND c.is_current = true
-            ORDER BY c.embedding <=> %(query)s::vector
+            ORDER BY similarity DESC
             LIMIT %(limit)s
             """,
-            {
-                "query": vector_literal(query_embedding),
-                "organization_id": organization_id,
-                "allowed": list(allowed_document_ids),
-                "limit": limit,
-            },
+            params,
         ).fetchall()
     return [RetrievedChunk(*row) for row in rows]
